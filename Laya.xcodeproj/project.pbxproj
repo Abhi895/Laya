@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E115B6612FE3259500F98544 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = E115B6602FE3259500F98544 /* FirebaseAuth */; };
+		E115B6632FE3259500F98544 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E115B6622FE3259500F98544 /* FirebaseFirestore */; };
+		E115B6652FE3259500F98544 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = E115B6642FE3259500F98544 /* FirebaseStorage */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E115B6312FE3225000F98544 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +35,30 @@
 		E115B63A2FE3225000F98544 /* LayaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LayaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E115B65D2FE323A700F98544 /* Exceptions for "Laya" folder in "LayaTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = E115B62F2FE3225000F98544 /* LayaTests */;
+		};
+		E115B65E2FE323A700F98544 /* Exceptions for "Laya" folder in "LayaUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = E115B6392FE3225000F98544 /* LayaUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E115B6252FE3224E00F98544 /* Laya */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E115B65D2FE323A700F98544 /* Exceptions for "Laya" folder in "LayaTests" target */,
+				E115B65E2FE323A700F98544 /* Exceptions for "Laya" folder in "LayaUITests" target */,
+			);
 			path = Laya;
 			sourceTree = "<group>";
 		};
@@ -52,6 +79,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E115B6612FE3259500F98544 /* FirebaseAuth in Frameworks */,
+				E115B6632FE3259500F98544 /* FirebaseFirestore in Frameworks */,
+				E115B6652FE3259500F98544 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +142,9 @@
 			);
 			name = Laya;
 			packageProductDependencies = (
+				E115B6602FE3259500F98544 /* FirebaseAuth */,
+				E115B6622FE3259500F98544 /* FirebaseFirestore */,
+				E115B6642FE3259500F98544 /* FirebaseStorage */,
 			);
 			productName = Laya;
 			productReference = E115B6232FE3224E00F98544 /* Laya.app */;
@@ -195,6 +228,9 @@
 			);
 			mainGroup = E115B61A2FE3224E00F98544;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E115B65F2FE3259500F98544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E115B6242FE3224E00F98544 /* Products */;
 			projectDirPath = "";
@@ -403,8 +439,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -435,8 +472,9 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -578,6 +616,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E115B65F2FE3259500F98544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.15.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E115B6602FE3259500F98544 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E115B65F2FE3259500F98544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		E115B6622FE3259500F98544 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E115B65F2FE3259500F98544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		E115B6642FE3259500F98544 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E115B65F2FE3259500F98544 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E115B61B2FE3224E00F98544 /* Project object */;
 }

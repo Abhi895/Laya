@@ -19,6 +19,14 @@ struct ContentView: View {
     }
 }
 
+//#Preview {
+//    ContentView()
+//}
+
 #Preview {
-    ContentView()
+    // If this compiles and shows the data, your mock stack is wired correctly
+    VStack {
+        Text(Artist.mock.name)
+        Text(Journey.mock.chapters[0].title)
+    }
 }

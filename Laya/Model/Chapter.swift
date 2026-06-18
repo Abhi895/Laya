@@ -1,0 +1,17 @@
+import Foundation
+
+// Chapter within a Journey (I/II/III)
+struct Chapter: Codable, Identifiable {
+    // Unique identifier for the chapter
+    let id: String
+    // 0/1/2 → I/II/III
+    let index: Int
+    // Title (Background / Music / Goals)
+    let title: String
+    // Subtitle (e.g., "Where Reuben began", "The sound that defines him")
+    let subtitle: String
+    // Unlock offset in days from the shared weekStartDate
+    let unlockOffsetDays: Int
+    // Ordered list of videos
+    let videos: [JourneyVideo]
+}
