@@ -18,9 +18,12 @@ struct WeeklyAssignment: Codable, Identifiable {
 }
 
 struct JourneyProgress: Codable {
-    // Which chapter indices have been completed
-    var completedChapterIndices: [Int]
-    // The last watched video id, if any
+    // Every video this user has watched — the single source of truth for "how far".
+    // Chapter completion and per-chapter progress are derived from this against the
+    // catalog (Chapter.videos), so there's nothing to keep in sync.
+    var watchedVideoIds: Set<String>
+    // Explicit resume pointer — which video to drop the user back into. The watched
+    // set is unordered, so this can't be derived from it.
     var lastWatchedVideoId: String?
     // Set when all 3 chapters are done
     var completedAt: Date?
@@ -32,10 +35,16 @@ extension WeeklyAssignment {
         id: "assignment-mock",
         userId: "user-mock",
         journeyId: "journey-tayo-james",
-        weekStartDate: Calendar.current.startOfDay(for: Date()),
+        // Anchored 3 days back so Music (offset 2) reads as unlocked and Goals
+        // (offset 5) reads as locked — lets both completion-screen variants be
+        // exercised by playing Background → Music in one run.
+        weekStartDate: Calendar.current.date(
+            byAdding: .day, value: -3,
+            to: Calendar.current.startOfDay(for: Date())
+        )!,
         assignedAt: Date(),
         progress: JourneyProgress(
-            completedChapterIndices: [],
+            watchedVideoIds: [],
             lastWatchedVideoId: nil,
             completedAt: nil
         )

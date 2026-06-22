@@ -1,0 +1,64 @@
+//
+//  PrimaryActionButton.swift
+//  Laya
+//
+//  Created by Abhi Reddy on 18/06/2026.
+//
+
+import SwiftUI
+
+/// The app's primary call-to-action — the grounded, full-width capsule used for
+/// the journey-entry actions: "Begin" on the first-visit reveal and "Continue"
+/// on return visits. Centralised here so the two can never drift apart in font,
+/// padding, fill, or shadow; callers supply only the title and action and set
+/// the surrounding width via their own horizontal padding.
+struct PrimaryActionButton: View {
+    let title: String
+    /// Fill colour for the capsule. Defaults to `.textPrimary` (espresso brown).
+    /// Pass `.copper` for the dark locked screen's Follow CTA.
+    var background: Color = .textPrimary
+    let action: () -> Void
+
+    //TODO: add transient haptic
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.layaBody(17, weight: .semibold))
+                .foregroundStyle(.cream)
+                // Full-width within the caller's column; height stays
+                // padding-driven so it scales with Dynamic Type.
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Capsule().fill(background))
+                .shadow(color: .ink.opacity(0.35), radius: 12, x: 0, y: 8)
+        }
+        // Tactile press: the whole capsule dips and dims, springing back on
+        // release. Centralised here so Begin and Continue feel identical.
+        .buttonStyle(PressableButtonStyle())
+        // TODO: fire a transient haptic (e.g. .sensoryFeedback(.impact, ...) or a
+        // UIImpactFeedbackGenerator) on press so the dip is felt as well as seen.
+    }
+}
+
+// Shrinks and dims the label while pressed, springing back on release.
+private struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6),
+                       value: configuration.isPressed)
+    }
+}
+
+#if DEBUG
+#Preview {
+    VStack(spacing: 24) {
+        PrimaryActionButton(title: "Begin") {}
+        PrimaryActionButton(title: "Continue") {}
+    }
+    .padding(.horizontal, 56)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color.cream)
+}
+#endif

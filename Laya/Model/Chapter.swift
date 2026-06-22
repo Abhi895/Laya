@@ -15,3 +15,18 @@ struct Chapter: Codable, Identifiable {
     // Ordered list of videos
     let videos: [JourneyVideo]
 }
+
+extension Chapter {
+    /// 0…1 — how far through this chapter's videos the given watched set reaches.
+    /// Drives the progress bar's fractional fill.
+    func fractionWatched(_ watched: Set<String>) -> Double {
+        guard !videos.isEmpty else { return 0 }
+        let seen = videos.filter { watched.contains($0.id) }.count
+        return Double(seen) / Double(videos.count)
+    }
+
+    /// True once every video in the chapter has been watched.
+    func isComplete(_ watched: Set<String>) -> Bool {
+        !videos.isEmpty && videos.allSatisfy { watched.contains($0.id) }
+    }
+}

@@ -51,29 +51,32 @@ extension Chapter {
 }
 
 extension JourneyVideo {
+    // Public W3C / Blender sample clips so the player is actually exercisable in
+    // DEBUG builds/previews. Swap for real (HLS) sources when the catalog is wired.
     static let mockBackgroundVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-bg-1",
-            videoURL: URL(string: "https://placeholder.com/video1.mp4")!,
+            // Bundled 1080x1920 portrait clip so the first page genuinely fills a
+            // phone screen edge-to-edge (the remote samples are letterboxed 16:9).
+            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
             posterURL: nil,
             kind: .interview,
             title: "Growing up",
-            spotifyTrackId: nil
-        ),
+            spotifyTrackId: nil        ),
         JourneyVideo(
             id: "video-bg-2",
-            videoURL: URL(string: "https://placeholder.com/video2.mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
             posterURL: nil,
             kind: .bts,
             title: "In the studio",
-            spotifyTrackId: nil
-        )
+            spotifyTrackId: nil        )
     ]
 
     static let mockMusicVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-music-1",
-            videoURL: URL(string: "https://placeholder.com/video3.mp4")!,
+            // Bundled clip — same source as background-1, confirmed to play on device.
+            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
             posterURL: nil,
             kind: .musicVideo,
             title: "Know it",
@@ -81,7 +84,7 @@ extension JourneyVideo {
         ),
         JourneyVideo(
             id: "video-music-2",
-            videoURL: URL(string: "https://placeholder.com/video4.mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
             posterURL: nil,
             kind: .live,
             title: "Heart of Darkness",
@@ -92,12 +95,12 @@ extension JourneyVideo {
     static let mockGoalsVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-goals-1",
-            videoURL: URL(string: "https://placeholder.com/video5.mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/sintel/trailer.mp4")!,
             posterURL: nil,
             kind: .interview,
             title: "Making it big",
-            spotifyTrackId: nil
-        )
+            spotifyTrackId: nil        )
     ]
 }
 #endif
+

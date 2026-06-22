@@ -21,7 +21,7 @@ extension Artist {
         name: "Tayo James",
         city: "London",
         genre: "R&B / Soul",
-        bio: "I grew up in London, making music from my bedroom. People say I sound like Brent Faiyaz - I’ll take it.",
+        bio: "I grew up in London, making music from my bedroom. People say I sound like Brent Faiyaz \u{2014} I’ll take it.",
         imageURL: URL(string: "https://placeholder.com/artist.jpg")!,
         spotifyArtistId: nil
         )

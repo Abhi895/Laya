@@ -28,9 +28,7 @@ struct LayaApp: App {
 
   var body: some Scene {
     WindowGroup {
-      NavigationView {
-        PreRevealView()
-      }
+      ContentView()
     }
   }
 }
