@@ -96,12 +96,18 @@ struct ChapterCompleteView: View {
             // rather than against whatever the photo happens to show at that height.
             GeometryReader { geo in
             ZStack(alignment: .top) {
-                ZStack(alignment: .bottom) {
-                    // ── Photo — bleeds through notch and status bar. Frame is fixed and
-                    // explicit (not inferred from the image), so the source photo's own
-                    // dimensions/aspect ratio can never affect this view's layout — only
-                    // what's visible inside this exact box changes.
-                    Image("Image")
+                // ── Background: photo + seamless fade, framed and clipped to the
+                // screen's exact bounds. The gradient is deliberately taller than any
+                // real device so its solid-ink tail comfortably outlasts the fade with
+                // no visible seam — but left unclipped, that oversized frame would
+                // inflate this ZStack past geo.size and shove the content panel below
+                // off the bottom of the screen. Capping the pair to geo.size keeps the
+                // overflow from ever reaching layout; only what's actually on-screen draws.
+                ZStack(alignment: .top) {
+                    // Frame is fixed and explicit (not inferred from the image), so the
+                    // source photo's own dimensions/aspect ratio can never affect this
+                    // view's layout — only what's visible inside this exact box changes.
+                    Image("artistCard2")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geo.size.width, height: 520)
@@ -109,25 +115,24 @@ struct ChapterCompleteView: View {
                         .grayscale(1.0)
                         .brightness(0.02)
 
-                    // ── Fade: photo → ink. Eased through more stops than a straight
-                    // two-segment ramp so there's no visible "elbow" where the curve
-                    // bends — each step is a gentler increment than the last.
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: 0),
-                            .init(color: Color.ink.opacity(0.34), location: 0.48),
-                            .init(color: Color.ink.opacity(0.58), location: 0.64),
-                            .init(color: Color.ink.opacity(0.84), location: 0.82),
-                            .init(color: Color.ink, location: 0.9),
+                            .init(color: .clear, location: 110 / 1000),
+                            .init(color: Color.ink.opacity(0.18), location: 280 / 1000),
+                            .init(color: Color.ink.opacity(0.42), location: 360 / 1000),
+                            .init(color: Color.ink.opacity(0.68), location: 425 / 1000),
+                            .init(color: Color.ink.opacity(0.88), location: 470 / 1000),
+                            .init(color: Color.ink, location: 500 / 1000),
+                            .init(color: Color.ink, location: 1.0),
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: 450)
+                    .frame(width: geo.size.width, height: 1000)
                 }
-                .frame(width: geo.size.width, height: 520)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
                 .clipped()
-                .ignoresSafeArea(edges: .top)
                 .opacity(showHead ? 1 : 0)
                 .animation(.easeOut(duration: beatFade).delay(cascadeStart), value: showHead)
 
@@ -172,14 +177,14 @@ struct ChapterCompleteView: View {
                             Circle()
                                 .fill(i <= completedChapter.index
                                       ? Color.cream
-                                      : Color.cream.opacity(0.18))
+                                      : Color.cream.opacity(0.32))
                                 .frame(width: 7, height: 7)
                         }
                         Text("\(completedChapter.index + 1) of \(totalChapters) chapters done")
                             .font(.layaBody(10, weight: .regular))
                             .tracking(1.5)
                             .textCase(.uppercase)
-                            .foregroundStyle(.cream.opacity(0.28))
+                            .foregroundStyle(.cream.opacity(0.55))
                     }
                     .opacity(showActions ? 1 : 0)
                     .offset(y: showActions ? 0 : 12)
@@ -209,9 +214,10 @@ struct ChapterCompleteView: View {
                     .offset(y: showActions ? 0 : 12)
                 }
                 .padding(.horizontal, 32)
-                .padding(.bottom, 34)
+                .padding(.bottom, 34 + geo.safeAreaInsets.bottom)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .ignoresSafeArea()
             }
         } else {
             // Finished: quiet closing message — eyebrow + "That's a wrap." + avatar.
