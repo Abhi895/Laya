@@ -102,7 +102,8 @@ struct JourneySessionView: View {
                     startIndex: resumeStartIndex,
                     onDismiss: dismiss,
                     onChapterComplete: exitPlayer,
-                    onVideoReached: markWatched
+                    onVideoReached: markResumePoint,
+                    onVideoCompleted: markWatched
                 )
                 // Explicit identity: forces a fresh view instance (and fresh @State,
                 // including videoDetached=false and a new JourneyFeedManager) whenever
@@ -189,9 +190,23 @@ struct JourneySessionView: View {
 
     // MARK: - Progress
 
+    // A clip became current — only the resume pointer moves. Reaching a clip
+    // isn't watching it; this just makes sure leaving mid-clip drops the user
+    // back on the same one rather than the one before it.
+    private func markResumePoint(_ video: JourneyVideo) {
+        lastWatchedVideoId = video.id
+        persistProgress()
+    }
+
+    // A clip played to its actual end — this is what counts toward chapter
+    // completion and the progress bars.
     private func markWatched(_ video: JourneyVideo) {
         watchedVideoIds.insert(video.id)
         lastWatchedVideoId = video.id
+        persistProgress()
+    }
+
+    private func persistProgress() {
         let progress = JourneyProgress(watchedVideoIds: watchedVideoIds,
                                        lastWatchedVideoId: lastWatchedVideoId,
                                        completedAt: nil)

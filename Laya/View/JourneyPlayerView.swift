@@ -26,8 +26,10 @@ struct JourneyPlayerView: View {
     var onDismiss: () -> Void
     /// Every clip in the chapter has been watched.
     var onChapterComplete: () -> Void
-    /// A clip became current — caller persists watched / resume state.
+    /// A clip became current — caller persists the resume pointer only.
     var onVideoReached: (JourneyVideo) -> Void
+    /// A clip played to its actual end — caller marks it watched.
+    var onVideoCompleted: (JourneyVideo) -> Void
 
     @State private var manager = JourneyFeedManager()
     @State private var scrollID: Int?
@@ -124,11 +126,13 @@ struct JourneyPlayerView: View {
     }
 
     #if DEBUG
-    // Jumps straight to the chapter completion screen — skips remaining clips.
-    // Only present in DEBUG builds for testing the completion flow quickly.
+    // Marks the current clip watched and advances exactly one clip — same
+    // path a real finish takes (calls into chapter-complete on the last
+    // clip) — so progress bars can be exercised one clip at a time without
+    // waiting for real playback. Only present in DEBUG builds.
     private var skipButton: some View {
         Button {
-            completeChapter()
+            manager.skipCurrent()
         } label: {
             Text("Skip")
                 .font(.layaBody(13, weight: .regular))
@@ -200,6 +204,7 @@ struct JourneyPlayerView: View {
         }
         manager.onChapterComplete = completeChapter
         manager.onVideoReached = onVideoReached
+        manager.onVideoCompleted = onVideoCompleted
         manager.start(videos: chapter.videos, startIndex: startIndex)
         scrollID = startIndex
     }
@@ -388,7 +393,8 @@ private struct CircleButton<Icon: View>: View {
         startIndex: 0,
         onDismiss: {},
         onChapterComplete: {},
-        onVideoReached: { _ in }
+        onVideoReached: { _ in },
+        onVideoCompleted: { _ in }
     )
 }
 #endif

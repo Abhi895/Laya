@@ -123,6 +123,9 @@ struct HomeReturnView: View {
     #if DEBUG
     // Flips RootView's shared latch back to false, routing the app to the
     // first-visit pre-reveal HomeView. Top-right, matching HomeView's debug chip.
+    // Also wipes watched-video progress — otherwise this only ever looked like
+    // a reset; the next "Begin" would land back on whatever chapter/progress
+    // the mock store still had from before.
     private var resetButton: some View {
         VStack {
             HStack {
@@ -130,6 +133,7 @@ struct HomeReturnView: View {
                 Button(action: {
                     hasBegunJourney = false
                     hasCompletedOnboarding = false
+                    MockAssignmentService.resetProgress()
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 14, weight: .semibold))

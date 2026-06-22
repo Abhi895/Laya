@@ -59,22 +59,6 @@ struct ChapterIntroView: View {
         ZStack {
             Color.cream.ignoresSafeArea()
 
-                // Thin copper progress line at the very top — only on return
-                // ("Continue") entries, where journey progress is meaningful.
-                // On the first-visit Begin intro there's nothing watched yet, so
-                // it's omitted.
-                if isResume {
-                    VStack(spacing: 0) {
-                        chapterProgressLine
-                        Spacer()
-                    }
-                    .padding([.horizontal, .bottom], 22)
-                    .padding(.top, 12)
-                    // Fades in with the cascade rather than sitting there from
-                    // the first frame.
-                    .opacity(showNumeral ? 1 : 0)
-                }
-
                 // Roman numeral + title + ornamental divider + subtitle.
                 ChapterInfoBlock(
                     numeralText: romanNumeral(chapter.index + 1),
@@ -126,23 +110,6 @@ struct ChapterIntroView: View {
         let remaining = (lastBeatFinish + holdAfter) - latchDelay
         try? await Task.sleep(for: .seconds(max(0, remaining)))
         advance()
-    }
-
-    // MARK: - Subviews
-
-    private var chapterProgressLine: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Rectangle()
-                    .fill(Color.muted.opacity(0.2))
-                    .frame(height: 1.5)
-                Rectangle()
-                    .fill(Color.copper)
-                    .frame(width: geo.size.width * CGFloat(chapter.index + 1) / 3,
-                           height: 1.5)
-            }
-        }
-        .frame(height: 1.5)
     }
 
     // MARK: - Helpers

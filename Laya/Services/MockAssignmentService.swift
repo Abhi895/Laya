@@ -30,6 +30,10 @@ private final class MockProgressStore {
     func set(_ progress: JourneyProgress, for assignmentId: String) {
         self.progress[assignmentId] = progress
     }
+
+    func reset() {
+        progress.removeAll()
+    }
 }
 
 struct MockAssignmentService: AssignmentServing {
@@ -49,6 +53,14 @@ struct MockAssignmentService: AssignmentServing {
 
     func completeChapter(index: Int, assignmentId: String) async throws {
         // No-op in mock
+    }
+
+    // Wipes all watched-video progress. Used by the DEBUG reset chips so
+    // resetting actually clears the slate, rather than just routing back to
+    // onboarding while the last session's progress quietly survives underneath.
+    @MainActor
+    static func resetProgress() {
+        MockProgressStore.shared.reset()
     }
 }
 #endif

@@ -36,8 +36,12 @@ final class JourneyFeedManager {
     var onAdvanceRequest: ((Int) -> Void)?
     /// The last clip finished — the chapter is done.
     var onChapterComplete: (() -> Void)?
-    /// A clip became the current one — used to record watched / resume state.
+    /// A clip became the current one — used only to record the resume
+    /// pointer (where to drop back in), not to mark it watched. Reaching a
+    /// clip isn't the same as finishing it.
     var onVideoReached: ((JourneyVideo) -> Void)?
+    /// A clip played to its actual end — this is what marks it watched.
+    var onVideoCompleted: ((JourneyVideo) -> Void)?
 
     @ObservationIgnored private var videos: [JourneyVideo] = []
     @ObservationIgnored private(set) var currentIndex = 0
@@ -168,11 +172,21 @@ final class JourneyFeedManager {
     private func handleEnd(index: Int) {
         // Only the visible clip drives advancement.
         guard index == currentIndex else { return }
+        onVideoCompleted?(videos[index])
         let next = index + 1
         if next < videos.count {
             onAdvanceRequest?(next)
         } else {
             onChapterComplete?()
         }
+    }
+
+    /// Testing aid — simulates the current clip finishing right now: marks it
+    /// watched and advances exactly like a real end-of-clip would (or
+    /// completes the chapter, on the last clip), instead of jumping straight
+    /// to chapter-complete regardless of position. Lets the progress bars be
+    /// exercised one clip at a time without waiting for real playback.
+    func skipCurrent() {
+        handleEnd(index: currentIndex)
     }
 }
