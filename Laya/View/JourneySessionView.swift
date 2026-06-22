@@ -218,20 +218,14 @@ struct JourneySessionView: View {
 
     private var isNextUnlocked: Bool {
         guard let next = nextChapter else { return false }
-        return Date() >= unlockDate(for: next)
+        return next.isUnlocked(weekStartDate: weekStartDate)
     }
 
     private var daysUntilNextUnlock: Int {
         guard let next = nextChapter else { return 0 }
-        let unlock = unlockDate(for: next)
+        let unlock = next.unlockDate(weekStartDate: weekStartDate)
         let days = Calendar.current.dateComponents([.day], from: Date(), to: unlock).day ?? 0
         return max(0, days)
-    }
-
-    private func unlockDate(for chapter: Chapter) -> Date {
-        Calendar.current.date(byAdding: .day,
-                              value: chapter.unlockOffsetDays,
-                              to: weekStartDate) ?? weekStartDate
     }
 
     // MARK: - Loading

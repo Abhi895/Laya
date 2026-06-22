@@ -29,4 +29,22 @@ extension Chapter {
     func isComplete(_ watched: Set<String>) -> Bool {
         !videos.isEmpty && videos.allSatisfy { watched.contains($0.id) }
     }
+
+    /// The wall-clock moment this chapter becomes available, given the shared
+    /// weekly anchor.
+    func unlockDate(weekStartDate: Date) -> Date {
+        Calendar.current.date(byAdding: .day, value: unlockOffsetDays, to: weekStartDate) ?? weekStartDate
+    }
+
+    /// Whether this chapter has reached its unlock date yet.
+    func isUnlocked(weekStartDate: Date, on date: Date = Date()) -> Bool {
+        date >= unlockDate(weekStartDate: weekStartDate)
+    }
+
+    /// Weekday this chapter unlocks on, e.g. "Wednesday" — for "Drops Wednesday" copy.
+    func unlockDayName(weekStartDate: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE"
+        return fmt.string(from: unlockDate(weekStartDate: weekStartDate))
+    }
 }

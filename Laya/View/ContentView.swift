@@ -21,9 +21,9 @@ struct ContentView: View {
     @AppStorage("hasBegunJourney") private var hasBegunJourney = false
 
     @State private var showSession = false
-    // Chapter to open the session on — updated either by HomeReturnView (first
-    // visit) or by the session's dismiss callback (subsequent visits, which knows
-    // exactly where the user left off even when the mock service isn't shared).
+    // Chapter to open the session on — updated either by HomeReturnView (when
+    // the user taps Continue) or by the session's dismiss callback (when a
+    // session ends), both reading from the same underlying progress.
     @State private var pendingChapter: Chapter = .mockBackground
     @State private var isResume = false
     // Bumped each time we present a new session, giving JourneySessionView a
@@ -41,18 +41,13 @@ struct ContentView: View {
                 .transition(.opacity)
             } else if hasBegunJourney {
                 HomeReturnView(
-                    onContinue: { chapter in
-                        // Use the chapter the session reported on dismiss (set by
-                        // the onFinished callback below) so we resume exactly where
-                        // the user left off. Fall back to HomeReturnView's computed
-                        // chapter only on the very first visit (no prior dismiss).
-                        if !isResume {
-                            // First-ever continue: HomeReturnView's chapter is correct.
-                            pendingChapter = chapter
-                            isResume = true
-                        }
-                        // Otherwise pendingChapter / isResume were already set by the
-                        // session's dismiss callback and reflect the true resume point.
+                    isSessionActive: showSession,
+                    onContinue: { chapter, resume in
+                        // HomeReturnView holds the real watched-progress data, so it's
+                        // the authority on both which chapter is current and whether
+                        // it's already partway watched — just trust what it reports.
+                        pendingChapter = chapter
+                        isResume = resume
                         presentIntro()
                     }
                 )
@@ -84,7 +79,7 @@ struct ContentView: View {
                     isResume: isResume,
                     onFinished: { chapter, resume in
                         // Store where the user left off so the next Continue tap
-                        // starts on the right chapter without needing a shared service.
+                        // starts on the right chapter.
                         pendingChapter = chapter
                         isResume = resume
                         dismissSession()
