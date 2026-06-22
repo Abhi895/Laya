@@ -107,7 +107,7 @@ struct ChapterCompleteView: View {
                     // Frame is fixed and explicit (not inferred from the image), so the
                     // source photo's own dimensions/aspect ratio can never affect this
                     // view's layout — only what's visible inside this exact box changes.
-                    Image("artistCard2")
+                    Image("artistCard")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geo.size.width, height: 520)
@@ -171,20 +171,24 @@ struct ChapterCompleteView: View {
 
                     Spacer().frame(height: 34)
 
-                    // Progress dots + label
-                    HStack(spacing: 8) {
+                    // Progress dots + label — hairline rings rather than flat filled
+                    // blobs, so the indicator reads as a quiet editorial detail instead
+                    // of a generic onboarding-style progress bar.
+                    HStack(spacing: 10) {
                         ForEach(0..<totalChapters, id: \.self) { i in
                             Circle()
-                                .fill(i <= completedChapter.index
-                                      ? Color.cream
-                                      : Color.cream.opacity(0.32))
-                                .frame(width: 7, height: 7)
+                                .strokeBorder(Color.cream.opacity(i <= completedChapter.index ? 0.85 : 0.28), lineWidth: 1)
+                                .background(
+                                    Circle()
+                                        .fill(i <= completedChapter.index ? Color.cream.opacity(0.85) : Color.clear)
+                                )
+                                .frame(width: 5, height: 5)
                         }
                         Text("\(completedChapter.index + 1) of \(totalChapters) chapters done")
                             .font(.layaBody(10, weight: .regular))
                             .tracking(1.5)
                             .textCase(.uppercase)
-                            .foregroundStyle(.cream.opacity(0.55))
+                            .foregroundStyle(.cream.opacity(0.45))
                     }
                     .opacity(showActions ? 1 : 0)
                     .offset(y: showActions ? 0 : 12)
