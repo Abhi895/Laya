@@ -42,7 +42,6 @@ struct ChapterCompleteView: View {
     @State private var showTitle = false     // unlocked only
     @State private var showSubtitle = false  // unlocked only
     @State private var showMid = false       // locked / finished only
-    @State private var showPortrait = false  // locked only
     @State private var showActions = false
 
     private let cascadeStart = 0.8
@@ -95,12 +94,18 @@ struct ChapterCompleteView: View {
             // Dark editorial layout: a height-capped grayscale photo fading into the
             // ink base beneath it, so the text panel always reads against solid ink
             // rather than against whatever the photo happens to show at that height.
+            GeometryReader { geo in
             ZStack(alignment: .top) {
                 ZStack(alignment: .bottom) {
-                    // ── Photo — bleeds through notch and status bar ──
-                    Image("artistCard2")
+                    // ── Photo — bleeds through notch and status bar. Frame is fixed and
+                    // explicit (not inferred from the image), so the source photo's own
+                    // dimensions/aspect ratio can never affect this view's layout — only
+                    // what's visible inside this exact box changes.
+                    Image("Image")
                         .resizable()
                         .scaledToFill()
+                        .frame(width: geo.size.width, height: 520)
+                        .clipped()
                         .grayscale(1.0)
                         .brightness(0.02)
 
@@ -120,7 +125,7 @@ struct ChapterCompleteView: View {
                     )
                     .frame(height: 450)
                 }
-                .frame(height: 520)
+                .frame(width: geo.size.width, height: 520)
                 .clipped()
                 .ignoresSafeArea(edges: .top)
                 .opacity(showHead ? 1 : 0)
@@ -207,6 +212,7 @@ struct ChapterCompleteView: View {
                 .padding(.bottom, 34)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            }
         } else {
             // Finished: quiet closing message — eyebrow + "That's a wrap." + avatar.
             VStack(spacing: 0) {
@@ -274,17 +280,16 @@ struct ChapterCompleteView: View {
 
     // MARK: - Actions
 
+    // Only ever reached for .unlocked (from layoutContent's "UP NEXT" branch) and
+    // .finished (the closing-message branch) — .locked builds its own bottom panel
+    // directly in layoutContent and never calls this.
     @ViewBuilder
     private var actions: some View {
         VStack(spacing: 18) {
-            switch variant {
-            case .unlocked:
+            if variant == .unlocked {
                 PrimaryActionButton(title: "Continue", action: onContinue)
                 backHomeButton
-            case .locked:
-                PrimaryActionButton(title: "+ Follow \(firstName)", action: onBackHome)
-                backHomeButton
-            case .finished:
+            } else {
                 PrimaryActionButton(title: "Back home", action: onBackHome)
             }
         }
@@ -367,13 +372,6 @@ struct ChapterCompleteView: View {
     }
 
     private var headlineSize: CGFloat { 44 }
-
-    private var lockedSubtitle: String {
-        let title = nextChapter?.title ?? "more"
-        let days = max(1, daysUntilUnlock)
-        let dayWord = days == 1 ? "day" : "days"
-        return "\(firstName)'s \(title) opens in \(days) \(dayWord)."
-    }
 
     /// "CHAPTER II • DROPS WEDNESDAY" — eyebrow on the dark locked screen.
     private var lockedNextEyebrow: String {
