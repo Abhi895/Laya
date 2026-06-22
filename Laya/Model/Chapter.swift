@@ -47,4 +47,10 @@ extension Chapter {
         fmt.dateFormat = "EEEE"
         return fmt.string(from: unlockDate(weekStartDate: weekStartDate))
     }
+
+    /// Whole days from `date` until this chapter unlocks — for "in N days" copy.
+    func daysUntilUnlock(weekStartDate: Date, from date: Date = Date()) -> Int {
+        let days = Calendar.current.dateComponents([.day], from: date, to: unlockDate(weekStartDate: weekStartDate)).day ?? 0
+        return max(0, days)
+    }
 }

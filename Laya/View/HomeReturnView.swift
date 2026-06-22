@@ -84,7 +84,6 @@ struct HomeReturnView: View {
                     Spacer().frame(height: 35)
 
                     ChapterProgressTrack(chapters: chapters,
-                                         currentIndex: currentIndex,
                                          watchedVideoIds: watchedVideoIds,
                                          weekStartDate: weekStartDate)
                     .padding(.horizontal, 24)
@@ -92,13 +91,17 @@ struct HomeReturnView: View {
                     Spacer(minLength: 30)
 
                     VStack(spacing: 14) {
-                        PrimaryActionButton(title: isCurrentChapterUnlocked ? "Continue" : "Locked",
-                                           action: {
-                            guard isCurrentChapterUnlocked, let chapter = currentChapter else { return }
-                            onContinue(chapter, isCurrentChapterStarted)
-                        })
-                        .opacity(isCurrentChapterUnlocked ? 1 : 0.45)
-                        .allowsHitTesting(isCurrentChapterUnlocked)
+                        PrimaryActionButton(
+                            title: isCurrentChapterUnlocked ? "Continue" : "Stream \(firstName)'s music",
+                            icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
+                            action: {
+                                guard isCurrentChapterUnlocked, let chapter = currentChapter else {
+                                    // TODO: route to artist.spotifyArtistId once Spotify linking is wired up.
+                                    return
+                                }
+                                onContinue(chapter, isCurrentChapterStarted)
+                            }
+                        )
                         timeLeftLabel
                     }
                     // Same inset as the progress track so the CTA grounds itself
@@ -159,14 +162,20 @@ struct HomeReturnView: View {
     // MARK: - Continue
 
     // The weekly runway — quiet, reinforcing Laya's intentional weekly cadence
-    // without competing with the Continue CTA above it. Swaps to the unlock
-    // day once the user has caught up to a chapter that isn't available yet.
+    // without competing with the Continue CTA above it. Swaps to a countdown
+    // once the user has caught up to a chapter that isn't available yet.
     private var timeLeftLabel: some View {
-        Text(isCurrentChapterUnlocked
-             ? "4 days left this week"
-             : "Drops \(currentChapter?.unlockDayName(weekStartDate: weekStartDate) ?? "soon")")
+        Text(isCurrentChapterUnlocked ? "4 days left this week" : lockedCountdownLabel)
             .font(.layaBody(12, weight: .light))
             .foregroundStyle(.ink.opacity(0.4))
+    }
+
+    private var lockedCountdownLabel: String {
+        guard let chapter = currentChapter else { return "" }
+        let days = chapter.daysUntilUnlock(weekStartDate: weekStartDate)
+        let numeral = romanNumeral(chapter.index + 1)
+        guard days > 0 else { return "Chapter \(numeral) soon" }
+        return "Chapter \(numeral) in \(days) day\(days == 1 ? "" : "s")"
     }
 
     // MARK: - Derived state
@@ -177,10 +186,6 @@ struct HomeReturnView: View {
     // nothing about whether the chapter is actually unlocked yet.
     private var currentChapter: Chapter? {
         chapters.first { !$0.isComplete(watchedVideoIds) } ?? chapters.last
-    }
-
-    private var currentIndex: Int {
-        currentChapter?.index ?? 0
     }
 
     // Gates the Continue button — without this, a returning user could land
@@ -195,6 +200,19 @@ struct HomeReturnView: View {
     // through (>0%) → resume intro at the next unwatched clip.
     private var isCurrentChapterStarted: Bool {
         (currentChapter?.fractionWatched(watchedVideoIds) ?? 0) > 0
+    }
+
+    private var firstName: String {
+        artist?.name.split(separator: " ").first.map(String.init) ?? "the artist"
+    }
+
+    private func romanNumeral(_ value: Int) -> String {
+        switch value {
+        case 1: return "I"
+        case 2: return "II"
+        case 3: return "III"
+        default: return "\(value)"
+        }
     }
 
     // MARK: - Loading
@@ -215,12 +233,11 @@ struct HomeReturnView: View {
 // MARK: - Chapter progress track
 
 // Three equal segments — a pill per chapter over its "I — Background" label.
-// Completed chapters read ink-solid; the current one shows a copper fill
-// proportional to how far through its videos the user is; upcoming ones a faint
-// wash, mirroring the journey player's sense of progress.
+// Completed chapters read ink-solid; unlocked ones show a copper fill
+// proportional to how far through its videos the user is (0% included, so
+// it still reads as "you are here"); locked ones are a flat muted outline.
 private struct ChapterProgressTrack: View {
     let chapters: [Chapter]
-    let currentIndex: Int
     let watchedVideoIds: Set<String>
     let weekStartDate: Date
 
@@ -231,57 +248,63 @@ private struct ChapterProgressTrack: View {
                     pill(for: chapter)
                         .frame(height: 12)
 
-                    // Antic Didone — the editorial display face, whose roman
-                    // numerals carry the journey's chapter markers. minimumScale
-                    // guards the longest title ("I • Background") from truncating
-                    // in its column. The active chapter is signalled by size (see
-                    // scaleEffect); opacity sets a gentle done/active/upcoming
-                    // hierarchy.
-                    Text("\(romanNumeral(chapter.index + 1)) • \(chapter.title)")
-                        .font(.layaDisplay(12))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .foregroundStyle(.ink.opacity(labelOpacity(for: chapter)))
+                    label(for: chapter)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
 
-    // Completed → solid ink. Current & unlocked → faint copper track with a solid
-    // copper fill proportional to the chapter's watched fraction (so even 0% still
-    // reads as "you are here"). Current & locked → a hairline copper outline rather
-    // than a fill, so it can't be mistaken for "ready to resume" — same idea as the
-    // hairline progress dots on the locked ChapterCompleteView screen. Upcoming →
-    // faint wash.
+    // Just two states, not a four-way done/current/locked/upcoming split: done
+    // is solid ink (standard "finished" treatment); anything else is either
+    // locked (a flat, muted hairline outline — no fill, no accent color, the
+    // same regardless of whether it's the next chapter or a further one) or
+    // unlocked (a grey track with a copper fill proportional to watched
+    // progress, 0% reading as "you are here" same as before).
     @ViewBuilder
     private func pill(for chapter: Chapter) -> some View {
         if chapter.isComplete(watchedVideoIds) {
             Capsule().fill(Color.ink)
-        } else if chapter.index == currentIndex {
-            if chapter.isUnlocked(weekStartDate: weekStartDate) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.muted.opacity(0.3))
-                        Capsule()
-                            .fill(Color.copper)
-                            .frame(width: geo.size.width * chapter.fractionWatched(watchedVideoIds))
-                    }
+        } else if chapter.isUnlocked(weekStartDate: weekStartDate) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.muted.opacity(0.3))
+                    Capsule()
+                        .fill(Color.copper)
+                        .frame(width: geo.size.width * chapter.fractionWatched(watchedVideoIds))
                 }
-            } else {
-                Capsule().strokeBorder(Color.copper.opacity(0.45), lineWidth: 1)
             }
         } else {
-            Capsule().fill(Color.muted.opacity(0.3))
+            Capsule().strokeBorder(Color.muted.opacity(0.5), lineWidth: 1)
         }
     }
 
-    // A gentle static hierarchy — emphasis on the active chapter comes from its
-    // scale, not opacity, so these just separate done / active / upcoming.
+    // Antic Didone — the editorial display face, whose roman numerals carry the
+    // journey's chapter markers. minimumScale guards the longest title
+    // ("I • Background") from truncating in its column. Locked chapters swap
+    // the title for a clock glyph at a fixed, low opacity — there's nothing
+    // useful to read yet, so naming the chapter just invites someone to wonder
+    // why they can't tap into it; a clock reads as "time, not access" more
+    // than a lock would.
+    @ViewBuilder
+    private func label(for chapter: Chapter) -> some View {
+        if chapter.isUnlocked(weekStartDate: weekStartDate) {
+            Text("\(romanNumeral(chapter.index + 1)) • \(chapter.title)")
+                .font(.layaDisplay(12))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(.ink.opacity(labelOpacity(for: chapter)))
+        } else {
+            Image(systemName: "clock")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.ink.opacity(0.35))
+        }
+    }
+
+    // A gentle, two-step hierarchy — done settles in at full weight, anything
+    // still unwatched (whether it's the current chapter or not) reads the same.
     private func labelOpacity(for chapter: Chapter) -> Double {
-        if chapter.isComplete(watchedVideoIds) { return 0.7 }   // done — settled
-        if chapter.index == currentIndex { return 0.8 }         // active
-        return 0.5                                              // upcoming — faint
+        chapter.isComplete(watchedVideoIds) ? 0.7 : 0.55
     }
 
     private func romanNumeral(_ value: Int) -> String {

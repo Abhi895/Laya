@@ -223,9 +223,7 @@ struct JourneySessionView: View {
 
     private var daysUntilNextUnlock: Int {
         guard let next = nextChapter else { return 0 }
-        let unlock = next.unlockDate(weekStartDate: weekStartDate)
-        let days = Calendar.current.dateComponents([.day], from: Date(), to: unlock).day ?? 0
-        return max(0, days)
+        return next.daysUntilUnlock(weekStartDate: weekStartDate)
     }
 
     // MARK: - Loading

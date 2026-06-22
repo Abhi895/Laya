@@ -17,20 +17,33 @@ struct PrimaryActionButton: View {
     /// Fill colour for the capsule. Defaults to `.textPrimary` (espresso brown).
     /// Pass `.copper` for the dark locked screen's Follow CTA.
     var background: Color = .textPrimary
+    /// Optional leading glyph — e.g. the Spotify mark for "Stream" CTAs.
+    /// Template-rendered in the same cream as the title so it never needs
+    /// its own color decision.
+    var icon: Image? = nil
     let action: () -> Void
 
     //TODO: add transient haptic
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.layaBody(17, weight: .semibold))
-                .foregroundStyle(.cream)
-                // Full-width within the caller's column; height stays
-                // padding-driven so it scales with Dynamic Type.
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Capsule().fill(background))
-                .shadow(color: .ink.opacity(0.35), radius: 12, x: 0, y: 8)
+            HStack(spacing: 8) {
+                if let icon {
+                    icon
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                }
+                Text(title)
+                    .font(.layaBody(17, weight: .semibold))
+            }
+            .foregroundStyle(.cream)
+            // Full-width within the caller's column; height stays
+            // padding-driven so it scales with Dynamic Type.
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Capsule().fill(background))
+            .shadow(color: .ink.opacity(0.35), radius: 12, x: 0, y: 8)
         }
         // Tactile press: the whole capsule dips and dims, springing back on
         // release. Centralised here so Begin and Continue feel identical.
