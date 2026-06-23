@@ -64,12 +64,8 @@ struct ArtistCard: View {
         // Defined edge — a thin rim so the card reads against the cream background.
         .overlay(
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
-                .stroke(Color.cream.opacity(0.38), lineWidth: 2)
+                .stroke(Color.cream.opacity(0.38), lineWidth: 5)
         )
-        // Two layers: a soft ambient cast plus a tighter contact shadow so the
-        // card reads as clearly lifted off the cream on a real screen.
-        .shadow(color: Color.ink.opacity(0.45), radius: 15, x: 0, y: 14)
-        .shadow(color: Color.ink.opacity(0.30), radius: 9, x: 0, y: 6)
     }
 
     // MARK: - Identity

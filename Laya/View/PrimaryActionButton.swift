@@ -43,7 +43,6 @@ struct PrimaryActionButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(Capsule().fill(background))
-            .shadow(color: .ink.opacity(0.35), radius: 12, x: 0, y: 8)
         }
         // Tactile press: the whole capsule dips and dims, springing back on
         // release. Centralised here so Begin and Continue feel identical.
