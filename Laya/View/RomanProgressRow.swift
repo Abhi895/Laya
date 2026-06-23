@@ -30,14 +30,14 @@ struct RomanProgressRow: View {
         HStack(spacing: 10) {
             ForEach(0..<totalChapters, id: \.self) { i in
                 Text(romanNumeral(i + 1))
-                    .font(.layaBody(13, weight: .medium))
+                    .font(.layaDisplay(13))
                     .tracking(1)
                     .foregroundStyle(Color.copper.opacity(i < filledCount ? 1.0 : 0.32))
 
                 if i < totalChapters - 1 {
                     Rectangle()
                         .fill(Color.copper.opacity(i < filledCount - 1 ? 0.7 : 0.25))
-                        .frame(width: 28, height: 1)
+                        .frame(height: 1)
                 }
             }
         }

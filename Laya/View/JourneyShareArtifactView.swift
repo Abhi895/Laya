@@ -24,16 +24,28 @@ struct JourneyShareArtifactView: View {
     var body: some View {
         ZStack(alignment: .top) {
             photo
+            topScrim
             topRow
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
+                .padding(.horizontal, 22)
+                .padding(.top, 22)
             bottomPanel
                 .padding(.horizontal, 22)
-                .padding(.bottom, 22)
+                .padding(.bottom, 32)
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight, alignment: .top)
         .background(Color.ink)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+
+    // Top-down darkening so the logo and "Journey Complete" eyebrow stay
+    // legible regardless of how light the photo happens to be at that spot.
+    private var topScrim: some View {
+        LinearGradient(
+            colors: [Color.ink.opacity(0.55), .clear],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(width: Self.cardWidth, height: 130, alignment: .top)
     }
 
     // MARK: - Photo + seamless fade
@@ -46,10 +58,14 @@ struct JourneyShareArtifactView: View {
     // itself reads warm rather than gray.
     private var photo: some View {
         ZStack(alignment: .top) {
+            // Scaled to fill a taller-than-needed rect first, then clipped down
+            // to the real photo height anchored to the top — so any cropping
+            // comes off the bottom (legs/torso), never the top (the head).
             Image("artistCard")
                 .resizable()
                 .scaledToFill()
-                .frame(width: Self.cardWidth, height: Self.photoHeight)
+                .frame(width: Self.cardWidth, height: Self.photoHeight * 1.45)
+                .frame(width: Self.cardWidth, height: Self.photoHeight, alignment: .top)
                 .clipped()
 
             LinearGradient(
@@ -77,13 +93,11 @@ struct JourneyShareArtifactView: View {
 
     private var topRow: some View {
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                Image("logo")
-                    .renderingMode(.template)
+            VStack(alignment: .center, spacing: -5) {
+                Image("logoDark")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 14, height: 14)
-                    .foregroundStyle(.cream)
+                    .frame(width: 26, height: 26)
                 Text("Laya")
                     .font(.layaDisplay(15))
                     .foregroundStyle(.cream)
@@ -91,12 +105,12 @@ struct JourneyShareArtifactView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 6) {
+            VStack(alignment: .center, spacing: 6) {
                 Text("Journey\nComplete")
                     .font(.layaBody(10, weight: .medium))
                     .tracking(2.2)
                     .textCase(.uppercase)
-                    .multilineTextAlignment(.trailing)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(.cream)
                 CopperDivider(width: 46)
             }
@@ -113,24 +127,32 @@ struct JourneyShareArtifactView: View {
                 .foregroundStyle(.copper)
 
             Text(artist.name)
-                .font(.layaDisplay(48))
+                .font(.layaDisplay(53))
                 .foregroundStyle(.cream)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .padding(.top, 4)
 
-            CopperDivider(width: 70)
+            Rectangle()
+                .frame(width: 20, height: 2)
+                .foregroundStyle(.copper)
                 .padding(.vertical, 14)
 
             Text("\u{201C}\(artist.quote)\u{201D}")
-                .font(.layaBody(15, weight: .light))
-                .italic()
+                .font(.layaDisplay(17))
+                .tracking(1)
                 .foregroundStyle(.cream.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer().frame(height: 22)
 
             RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters)
+                .background(
+                    Ellipse()
+                        .fill(Color.copper.opacity(0.35))
+                        .frame(width: 170, height: 34)
+                        .blur(radius: 18)
+                )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }
