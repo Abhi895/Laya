@@ -85,7 +85,7 @@ struct HomeReturnView: View {
                     // Tight gap so the progress track reads as belonging to the card.
                     Spacer().frame(height: 35)
 
-                    VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 12) {
                         ChapterProgressTrack(chapters: chapters,
                                              watchedVideoIds: watchedVideoIds,
                                              weekStartDate: weekStartDate,
@@ -268,9 +268,11 @@ struct HomeReturnView: View {
         artist?.name.split(separator: " ").first.map(String.init) ?? "the artist"
     }
 
-    // Every chapter watched — the week's whole journey, not just the current one.
+    // Every chapter watched — the week's whole journey, not just the current
+    // one. Shared with ChapterCompleteView via Journey/[Chapter].isComplete
+    // rather than each view inferring "done" its own way.
     private var isJourneyComplete: Bool {
-        !chapters.isEmpty && chapters.allSatisfy { $0.isComplete(watchedVideoIds) }
+        chapters.isComplete(watchedVideoIds)
     }
 
     // Weeks run on a fixed 7-day cadence from weekStartDate, so the next

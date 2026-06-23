@@ -12,6 +12,23 @@ struct Journey: Codable, Identifiable {
 
 }
 
+extension Journey {
+    /// True once every chapter has been watched — the single source of truth
+    /// for "is the whole journey done", shared by every screen that needs to
+    /// answer that question rather than each inferring it its own way.
+    func isComplete(_ watched: Set<String>) -> Bool {
+        chapters.isComplete(watched)
+    }
+}
+
+extension Array where Element == Chapter {
+    /// Same check as `Journey.isComplete`, for call sites that only hold the
+    /// flat chapter list rather than the whole `Journey`.
+    func isComplete(_ watched: Set<String>) -> Bool {
+        !isEmpty && allSatisfy { $0.isComplete(watched) }
+    }
+}
+
 #if DEBUG
 extension Journey {
     static let mock = Journey(

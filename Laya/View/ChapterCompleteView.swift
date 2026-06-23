@@ -28,6 +28,13 @@ struct ChapterCompleteView: View {
     let artist: Artist?
     /// Total chapters in the journey — used for the progress dot row on the locked screen.
     var totalChapters: Int = 3
+    /// Whether every chapter has actually been watched — the real source of
+    /// truth for "the journey is done", computed once by the caller (see
+    /// Journey/[Chapter].isComplete) rather than inferred here from
+    /// `nextChapter`. Falls back to `nextChapter == nil` only if this is
+    /// somehow false at the very last chapter, so a `.finished` screen is
+    /// never skipped.
+    var isJourneyComplete: Bool = false
 
     /// Advance to the next chapter's intro (unlocked path only).
     var onContinue: () -> Void
@@ -407,7 +414,7 @@ struct ChapterCompleteView: View {
     private enum Variant { case unlocked, locked, finished }
 
     private var variant: Variant {
-        guard nextChapter != nil else { return .finished }
+        guard !isJourneyComplete, nextChapter != nil else { return .finished }
         return isNextUnlocked ? .unlocked : .locked
     }
 
@@ -484,6 +491,7 @@ struct ChapterCompleteView: View {
         isNextUnlocked: false,
         daysUntilUnlock: 0,
         artist: .mock,
+        isJourneyComplete: true,
         onContinue: {},
         onBackHome: {}
     )

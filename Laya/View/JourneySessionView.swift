@@ -55,6 +55,7 @@ struct JourneySessionView: View {
         let isNextUnlocked: Bool
         let daysUntilUnlock: Int
         let totalChapters: Int
+        let isJourneyComplete: Bool
     }
 
     init(initialChapter: Chapter,
@@ -122,6 +123,7 @@ struct JourneySessionView: View {
                     daysUntilUnlock: snap.daysUntilUnlock,
                     artist: artist,
                     totalChapters: snap.totalChapters,
+                    isJourneyComplete: snap.isJourneyComplete,
                     onContinue: goToNextChapter,
                     onBackHome: dismiss
                 )
@@ -155,7 +157,12 @@ struct JourneySessionView: View {
             nextChapter: nextChapter,
             isNextUnlocked: isNextUnlocked,
             daysUntilUnlock: daysUntilNextUnlock,
-            totalChapters: chapters.count
+            totalChapters: chapters.count,
+            // The single source of truth for "is the journey done" — see
+            // Journey/[Chapter].isComplete. markWatched() already recorded
+            // this chapter's last video before onChapterComplete fired, so
+            // watchedVideoIds is current as of this exact moment.
+            isJourneyComplete: chapters.isComplete(watchedVideoIds)
         )
         withAnimation(.easeInOut(duration: 0.9)) { phase = .complete }
     }
