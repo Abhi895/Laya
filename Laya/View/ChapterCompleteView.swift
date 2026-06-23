@@ -43,10 +43,18 @@ struct ChapterCompleteView: View {
     @State private var showSubtitle = false  // unlocked only
     @State private var showMid = false       // locked / finished only
     @State private var showActions = false
+    @State private var showBackHomeLink = false  // unlocked / locked only — trails the CTA above it
 
     private let cascadeStart = 0.8
     private let beatGap = 0.3
     private let beatFade = 0.55
+    private let backHomeLinkGap = 0.15
+
+    // Locked screen's cascade reads a beat slower/more spaced out than
+    // unlocked/finished — there's more to take in (photo, title, dots, CTA).
+    private let lockedCascadeStart = 1.1
+    private let lockedBeatGap = 0.45
+    private let lockedBeatFade = 0.7
 
     var body: some View {
         ZStack {
@@ -58,8 +66,6 @@ struct ChapterCompleteView: View {
     }
 
     // MARK: - Layout
-    
-    //TODO: during transiton, split is visible, fix this
 
     @ViewBuilder
     private var layoutContent: some View {
@@ -135,8 +141,13 @@ struct ChapterCompleteView: View {
                 }
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
                 .clipped()
+                // Flatten photo + mask into one layer before fading. Without this,
+                // SwiftUI fades each layer independently, weakening the gradient's
+                // solid-ink tail mid-fade and letting the photo's clipped edge
+                // bleed through as a visible seam against the ink background.
+                .compositingGroup()
                 .opacity(showHead ? 1 : 0)
-                .animation(.easeOut(duration: beatFade).delay(cascadeStart), value: showHead)
+                .animation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart), value: showHead)
 
                 // ── Content panel pinned to bottom ──
                 VStack(alignment: .leading, spacing: 0) {
@@ -208,7 +219,7 @@ struct ChapterCompleteView: View {
 
                     Spacer().frame(height: 20)
 
-                    // Back home text link
+                    // Back home text link — lands last, after the CTA above it.
                     Button(action: onBackHome) {
                         Text("Back Home")
                             .font(.layaBody(14, weight: .regular))
@@ -216,8 +227,7 @@ struct ChapterCompleteView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .buttonStyle(.plain)
-                    .opacity(showActions ? 1 : 0)
-                    .offset(y: showActions ? 0 : 12)
+                    .opacity(showBackHomeLink ? 1 : 0)
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 34 + geo.safeAreaInsets.bottom)
@@ -300,14 +310,17 @@ struct ChapterCompleteView: View {
         VStack(spacing: 18) {
             if variant == .unlocked {
                 PrimaryActionButton(title: "Continue", action: onContinue)
+                    .opacity(showActions ? 1 : 0)
+                    .offset(y: showActions ? 0 : 12)
                 backHomeButton
+                    .opacity(showBackHomeLink ? 1 : 0)
             } else {
                 PrimaryActionButton(title: "Back home", action: onBackHome)
+                    .opacity(showActions ? 1 : 0)
+                    .offset(y: showActions ? 0 : 12)
             }
         }
         .padding(.horizontal, 24)
-        .opacity(showActions ? 1 : 0)
-        .offset(y: showActions ? 0 : 12)
     }
 
     private var backHomeButton: some View {
@@ -322,6 +335,26 @@ struct ChapterCompleteView: View {
     // MARK: - Choreography
 
     private func runCascade() async {
+        if variant == .locked {
+            withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart)) {
+                showHead = true
+            }
+            // Beat 2: eyebrow + title + subtitle panel
+            withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + lockedBeatGap)) {
+                showMid = true
+            }
+            // Beat 3: progress dots + Follow CTA
+            withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + 2 * lockedBeatGap)) {
+                showActions = true
+            }
+            // Back home link only starts once the CTA above it has fully
+            // landed — the last thing to arrive, not overlapping with it.
+            withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + 2 * lockedBeatGap + lockedBeatFade + backHomeLinkGap)) {
+                showBackHomeLink = true
+            }
+            return
+        }
+
         withAnimation(.easeOut(duration: beatFade).delay(cascadeStart)) {
             showHead = true
         }
@@ -339,14 +372,10 @@ struct ChapterCompleteView: View {
             withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 4 * beatGap)) {
                 showActions = true
             }
-        } else if variant == .locked {
-            // Beat 2: eyebrow + title + subtitle panel
-            withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + beatGap)) {
-                showMid = true
-            }
-            // Beat 3: progress dots + Follow CTA + back link
-            withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 2 * beatGap)) {
-                showActions = true
+            // Back home link only starts once Continue's own fade has fully
+            // landed — the last thing to arrive, not overlapping with it.
+            withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 4 * beatGap + beatFade + backHomeLinkGap)) {
+                showBackHomeLink = true
             }
         } else {
             withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + beatGap)) {
