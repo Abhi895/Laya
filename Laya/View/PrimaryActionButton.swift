@@ -53,7 +53,8 @@ struct PrimaryActionButton: View {
 }
 
 // Shrinks and dims the label while pressed, springing back on release.
-private struct PressableButtonStyle: ButtonStyle {
+// Shared with SecondaryActionButton so the two CTAs feel identical to the touch.
+struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1)

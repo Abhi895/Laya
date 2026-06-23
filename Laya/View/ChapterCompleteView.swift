@@ -215,10 +215,9 @@ struct ChapterCompleteView: View {
 
                     Spacer().frame(height: 58)
 
-                    // Copper Follow CTA
+                    // Follow CTA
                     PrimaryActionButton(
                         title: "+ Follow \(firstName)",
-                        background: .copper,
                         action: onBackHome
                     )
                     .opacity(showActions ? 1 : 0)
@@ -314,12 +313,12 @@ struct ChapterCompleteView: View {
         VStack(spacing: 18) {
             // Same placeholder wiring as the locked screen's Follow CTA — no
             // real follow backend yet.
-            PrimaryActionButton(title: "+ Follow \(firstName)", background: .copper, action: onBackHome)
+            PrimaryActionButton(title: "+ Follow \(firstName)", action: onBackHome)
                 .opacity(showActions ? 1 : 0)
                 .offset(y: showActions ? 0 : 12)
 
             if artist != nil {
-                PrimaryActionButton(
+                SecondaryActionButton(
                     title: "Share Journey",
                     icon: Image(systemName: "square.and.arrow.up"),
                     action: { showSharePreview = true }

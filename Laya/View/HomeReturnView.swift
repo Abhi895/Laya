@@ -147,31 +147,12 @@ struct HomeReturnView: View {
     private var completedActions: some View {
         VStack(spacing: 14) {
             PrimaryActionButton(title: "+ Follow \(firstName)", action: {})
-            outlineButton(title: "Share Journey", icon: "square.and.arrow.up") {
+            SecondaryActionButton(title: "Share Journey", icon: Image(systemName: "square.and.arrow.up")) {
                 showSharePreview = true
             }
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 44)
-    }
-
-    // Bordered counterpart to PrimaryActionButton — same capsule/sizing/font,
-    // but an ink outline on cream rather than a filled background, so Share
-    // Journey reads as the secondary action beneath Follow.
-    private func outlineButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                Text(title)
-                    .font(.layaBody(17, weight: .semibold))
-            }
-            .foregroundStyle(.ink)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Capsule().strokeBorder(Color.ink.opacity(0.85), lineWidth: 1.5))
-        }
-        .buttonStyle(.plain)
     }
 
     #if DEBUG
