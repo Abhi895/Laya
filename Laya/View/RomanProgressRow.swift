@@ -47,18 +47,23 @@ struct RomanProgressRow: View {
         }
     }
 
+    // A single blurred Capsule behind the crisp line, rather than several
+    // stacked .shadow() layers on a Rectangle — shadows on a hard-cornered
+    // shape leave a visible rectangular silhouette at the glow's edge;
+    // rounded caps plus one soft blur read as a true glow instead.
     @ViewBuilder
     private func dash(filled: Bool) -> some View {
-        let line = Rectangle()
-            .fill(Color.copper.opacity(filled ? 0.7 : 0.25))
-            .frame(height: 1)
-        if glowIntensity > 0 {
-            line
-                .shadow(color: .copper.opacity(0.85 * glowIntensity), radius: 10)
-                .shadow(color: .copper.opacity(0.65 * glowIntensity), radius: 5)
-                .shadow(color: .copper.opacity(0.5 * glowIntensity), radius: 1.5)
-        } else {
-            line
+        let opacity = filled ? 0.7 : 0.25
+        ZStack {
+            if glowIntensity > 0 {
+                Capsule()
+                    .fill(Color.copper.opacity(opacity * glowIntensity))
+                    .frame(height: 5)
+                    .blur(radius: 3.5)
+            }
+            Capsule()
+                .fill(Color.copper.opacity(opacity))
+                .frame(height: 1)
         }
     }
 }

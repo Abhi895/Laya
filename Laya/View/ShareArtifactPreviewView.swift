@@ -53,13 +53,10 @@ struct ShareArtifactPreviewView: View {
         HStack {
             Spacer()
             Button(action: onDismiss) {
-                ZStack {
-                    Circle().stroke(Color.cream.opacity(0.85), lineWidth: 1)
+
                     Image(systemName: "xmark")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.cream)
-                }
-                .frame(width: 42, height: 42)
             }
             .buttonStyle(.plain)
         }
