@@ -25,6 +25,12 @@ func romanNumeral(_ value: Int) -> String {
 struct RomanProgressRow: View {
     let totalChapters: Int
     let filledCount: Int
+    // When > 0, the connecting dashes glow (matching the home screen's
+    // hold-to-reveal ring), at this intensity (0...1). Applied to each dash
+    // individually rather than as one full-width background — glowing the
+    // whole row at once bleeds light straight through the gaps either side
+    // of the numerals, erasing the spacing between them.
+    var glowIntensity: Double = 0
 
     var body: some View {
         HStack(spacing: 10) {
@@ -35,11 +41,24 @@ struct RomanProgressRow: View {
                     .foregroundStyle(Color.copper.opacity(i < filledCount ? 1.0 : 0.32))
 
                 if i < totalChapters - 1 {
-                    Rectangle()
-                        .fill(Color.copper.opacity(i < filledCount - 1 ? 0.7 : 0.25))
-                        .frame(height: 1)
+                    dash(filled: i < filledCount - 1)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func dash(filled: Bool) -> some View {
+        let line = Rectangle()
+            .fill(Color.copper.opacity(filled ? 0.7 : 0.25))
+            .frame(height: 1)
+        if glowIntensity > 0 {
+            line
+                .shadow(color: .copper.opacity(0.85 * glowIntensity), radius: 10)
+                .shadow(color: .copper.opacity(0.65 * glowIntensity), radius: 5)
+                .shadow(color: .copper.opacity(0.5 * glowIntensity), radius: 1.5)
+        } else {
+            line
         }
     }
 }

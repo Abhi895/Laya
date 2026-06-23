@@ -243,8 +243,8 @@ struct ChapterCompleteView: View {
             .ignoresSafeArea()
             }
         } else {
-            // Finished: celebration close — headline, sharp ArtistCard, filled
-            // progress row, Follow + Share Journey CTAs, quiet back-home link.
+            // Finished: celebration close — headline, sharp ArtistCard,
+            // Follow + Share Journey CTAs, quiet back-home link.
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 head
@@ -284,9 +284,8 @@ struct ChapterCompleteView: View {
     @ViewBuilder
     private var finishedMiddle: some View {
         VStack(spacing: 22) {
-            ArtistCard(width: 220, artist: artist, blurRadius: 0,
+            ArtistCard(width: 250, artist: artist, blurRadius: 0,
                        showName: true, showMeta: true, includesMeta: true)
-            RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters)
         }
         .opacity(showMid ? 1 : 0)
         .offset(y: showMid ? 0 : 12)

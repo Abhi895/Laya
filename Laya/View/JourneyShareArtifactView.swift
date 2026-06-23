@@ -23,7 +23,7 @@ struct JourneyShareArtifactView: View {
     static let cardHeight: CGFloat = 552
     private static let cornerRadius: CGFloat = 23
     private static let photoHeight: CGFloat = 360
-    private static let gradientHeight: CGFloat = 760
+    private static let gradientHeight: CGFloat = 730
 
     // Drives the numeral row's "breathing" glow — toggled by a repeating
     // animation, only ever armed when `animated` is true.
@@ -160,27 +160,13 @@ struct JourneyShareArtifactView: View {
 
             Spacer().frame(height: 22)
 
-            RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters)
-                .background(numeralRowGlow)
+            // `breathe` (armed only when `animated`) pulses the dashes' glow
+            // so the card reads as quietly alive; the shared image itself
+            // always renders the resting (non-pulsed) intensity.
+            RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters,
+                              glowIntensity: breathe ? 1.0 : 0.6)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-    }
-
-    // Same stacked-shadow technique as the hold-to-reveal ring on the home
-    // screen (HomeView's progressRing) — a thin solid copper line with
-    // layered glows, rather than one soft blurred blob. No fixed width, so
-    // it stretches to exactly the numeral row's own width via .background.
-    // `breathe` (armed only when `animated`) pulses the bloom so the card
-    // reads as quietly alive; the shared image itself always renders the
-    // resting (non-pulsed) intensity.
-    private var numeralRowGlow: some View {
-        let intensity = breathe ? 1.0 : 0.6
-        return Capsule()
-            .fill(Color.copper)
-            .frame(height: 1.5)
-            .shadow(color: .copper.opacity(0.9 * intensity), radius: 12)
-            .shadow(color: .copper.opacity(0.7 * intensity), radius: 6)
-            .shadow(color: .copper.opacity(0.55 * intensity), radius: 2)
     }
 }
 
