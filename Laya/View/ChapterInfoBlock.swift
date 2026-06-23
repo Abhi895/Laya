@@ -9,6 +9,8 @@ import SwiftUI
 
 /// The copper-diamond ornamental rule used to separate chapter identity lines.
 struct CopperDivider: View {
+    var width: CGFloat = 140
+
     var body: some View {
         HStack(spacing: 8) {
             Rectangle().fill(Color.copper).frame(height: 0.5)
@@ -17,7 +19,7 @@ struct CopperDivider: View {
                 .foregroundStyle(Color.copper)
             Rectangle().fill(Color.copper).frame(height: 0.5)
         }
-        .frame(width: 140)
+        .frame(width: width)
     }
 }
 

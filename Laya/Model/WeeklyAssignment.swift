@@ -49,5 +49,25 @@ extension WeeklyAssignment {
             completedAt: nil
         )
     )
+
+    // Debug-only variant — anchored far enough back that every chapter,
+    // including the last (offset 5), reads as unlocked. Backs the "Skip to
+    // finished" debug shortcut so the real finished-screen / share-artifact
+    // flow can be reached without waiting on real unlock dates.
+    static let mockAllUnlocked = WeeklyAssignment(
+        id: "assignment-mock",
+        userId: "user-mock",
+        journeyId: "journey-tayo-james",
+        weekStartDate: Calendar.current.date(
+            byAdding: .day, value: -7,
+            to: Calendar.current.startOfDay(for: Date())
+        )!,
+        assignedAt: Date(),
+        progress: JourneyProgress(
+            watchedVideoIds: [],
+            lastWatchedVideoId: nil,
+            completedAt: nil
+        )
+    )
 }
 #endif

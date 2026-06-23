@@ -9,7 +9,7 @@ import Foundation
 
 struct Artist: Codable, Identifiable {
     let id: String
-    let name, city, genre, bio : String
+    let name, city, genre, bio, quote : String
     let imageURL: URL
     let spotifyArtistId: String?
 }
@@ -22,6 +22,7 @@ extension Artist {
         city: "London",
         genre: "R&B / Soul",
         bio: "I grew up in London, making music from my bedroom. People say I sound like Brent Faiyaz \u{2014} I’ll take it.",
+        quote: "These stems are the messy parts of my brain. Keep them safe.",
         imageURL: URL(string: "https://placeholder.com/artist.jpg")!,
         spotifyArtistId: nil
         )

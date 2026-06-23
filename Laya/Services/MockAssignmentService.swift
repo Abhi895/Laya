@@ -21,6 +21,9 @@ import Foundation
 private final class MockProgressStore {
     static let shared = MockProgressStore()
     private var progress: [String: JourneyProgress] = [:]
+    // Debug-only: when true, fetchCurrentAssignment serves the all-unlocked
+    // week anchor instead of the default one — see skipToFinished().
+    var forceAllUnlocked = false
     private init() {}
 
     func progress(for assignmentId: String, fallback: JourneyProgress) -> JourneyProgress {
@@ -33,12 +36,14 @@ private final class MockProgressStore {
 
     func reset() {
         progress.removeAll()
+        forceAllUnlocked = false
     }
 }
 
 struct MockAssignmentService: AssignmentServing {
     func fetchCurrentAssignment(for userId: String) async throws -> AssignmentPackage {
-        var assignment = WeeklyAssignment.mock
+        let forceAllUnlocked = await MockProgressStore.shared.forceAllUnlocked
+        var assignment = forceAllUnlocked ? WeeklyAssignment.mockAllUnlocked : WeeklyAssignment.mock
         assignment.progress = await MockProgressStore.shared.progress(for: assignment.id, fallback: assignment.progress)
         return AssignmentPackage(
             assignment: assignment,
@@ -61,6 +66,24 @@ struct MockAssignmentService: AssignmentServing {
     @MainActor
     static func resetProgress() {
         MockProgressStore.shared.reset()
+    }
+
+    // Marks every chapter before the last as watched and unlocks the whole
+    // week, so tapping Continue drops the user straight into the last
+    // chapter — one debug Skip away from the real finished screen / share
+    // artifact, without faking the completion event itself.
+    @MainActor
+    static func skipToFinished() {
+        MockProgressStore.shared.forceAllUnlocked = true
+        let watched = Set(Chapter.mockBackground.videos.map(\.id) + Chapter.mockMusic.videos.map(\.id))
+        MockProgressStore.shared.set(
+            JourneyProgress(
+                watchedVideoIds: watched,
+                lastWatchedVideoId: Chapter.mockMusic.videos.last?.id,
+                completedAt: nil
+            ),
+            for: WeeklyAssignment.mock.id
+        )
     }
 }
 #endif

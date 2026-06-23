@@ -15,7 +15,8 @@ import SwiftUI
 ///   `ChapterInfoBlock` centered on screen, and a Continue CTA at the bottom.
 /// - **Locked next chapter** → "That's Chapter I.", a soft artist portrait, and a
 ///   come-back-in-N-days note with a Follow CTA.
-/// - **Journey finished** (no next chapter) → a quiet "Journey complete." close.
+/// - **Journey finished** (no next chapter) → a celebration close: headline,
+///   sharp `ArtistCard`, filled progress row, Follow + Share Journey CTAs.
 struct ChapterCompleteView: View {
     let completedChapter: Chapter
     /// The next chapter in the journey, or nil if this was the last.
@@ -36,14 +37,15 @@ struct ChapterCompleteView: View {
     // Cascade beats — matched to ChapterIntroView's feel.
     // Unlocked:  5-beat — head → numeral → title → subtitle → actions.
     // Locked:    4-beat — head → mid (title block) → portrait → actions.
-    // Finished:  3-beat — head → mid → actions.
+    // Finished:  4-beat — head → mid (card + progress) → actions → back home.
     @State private var showHead = false
     @State private var showNumeral = false   // unlocked only
     @State private var showTitle = false     // unlocked only
     @State private var showSubtitle = false  // unlocked only
     @State private var showMid = false       // locked / finished only
     @State private var showActions = false
-    @State private var showBackHomeLink = false  // unlocked / locked only — trails the CTA above it
+    @State private var showBackHomeLink = false  // unlocked / locked / finished — trails the CTA above it
+    @State private var showSharePreview = false
 
     private let cascadeStart = 0.8
     private let beatGap = 0.3
@@ -63,6 +65,11 @@ struct ChapterCompleteView: View {
             layoutContent
         }
         .task { await runCascade() }
+        .fullScreenCover(isPresented: $showSharePreview) {
+            if let artist {
+                ShareArtifactPreviewView(artist: artist, onDismiss: { showSharePreview = false })
+            }
+        }
     }
 
     // MARK: - Layout
@@ -236,13 +243,15 @@ struct ChapterCompleteView: View {
             .ignoresSafeArea()
             }
         } else {
-            // Finished: quiet closing message — eyebrow + "That's a wrap." + avatar.
+            // Finished: celebration close — headline, sharp ArtistCard, filled
+            // progress row, Follow + Share Journey CTAs, quiet back-home link.
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 head
-                middle
+                Spacer().frame(height: 28)
+                finishedMiddle
                 Spacer(minLength: 0)
-                actions
+                finishedActions
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 44)
@@ -270,55 +279,58 @@ struct ChapterCompleteView: View {
         .offset(y: showHead ? 0 : 12)
     }
 
-    // MARK: - Middle (locked / finished only)
+    // MARK: - Middle (finished only)
 
-    // Used by the finished variant only — locked has its own ZStack layout.
     @ViewBuilder
-    private var middle: some View {
+    private var finishedMiddle: some View {
         VStack(spacing: 22) {
-            softAvatar
-            Text("You've seen all of \(firstName)'s story this week.")
-                .font(.layaBody(16, weight: .light))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.ink.opacity(0.55))
-                .fixedSize(horizontal: false, vertical: true)
+            ArtistCard(width: 220, artist: artist, blurRadius: 0,
+                       showName: true, showMeta: true, includesMeta: true)
+            RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters)
         }
         .opacity(showMid ? 1 : 0)
         .offset(y: showMid ? 0 : 12)
     }
 
-    // A soft, circular portrait — the gentle "stay with this artist" cue on the
-    // locked / finished screens.
-    private var softAvatar: some View {
-        Image("artistPfp")
-            .resizable()
-            .scaledToFill()
-            .frame(width: 150, height: 150)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.copper.opacity(0.4), lineWidth: 1))
-            .shadow(color: .ink.opacity(0.25), radius: 10, y: 6)
-            .padding(.vertical)
-    }
-
     // MARK: - Actions
 
-    // Only ever reached for .unlocked (from layoutContent's "UP NEXT" branch) and
-    // .finished (the closing-message branch) — .locked builds its own bottom panel
-    // directly in layoutContent and never calls this.
+    // Only ever reached for .unlocked (from layoutContent's "UP NEXT" branch) —
+    // .locked and .finished build their own dedicated bottom panels.
     @ViewBuilder
     private var actions: some View {
         VStack(spacing: 18) {
-            if variant == .unlocked {
-                PrimaryActionButton(title: "Continue", action: onContinue)
-                    .opacity(showActions ? 1 : 0)
-                    .offset(y: showActions ? 0 : 12)
-                backHomeButton
-                    .opacity(showBackHomeLink ? 1 : 0)
-            } else {
-                PrimaryActionButton(title: "Back home", action: onBackHome)
-                    .opacity(showActions ? 1 : 0)
-                    .offset(y: showActions ? 0 : 12)
+            PrimaryActionButton(title: "Continue", action: onContinue)
+                .opacity(showActions ? 1 : 0)
+                .offset(y: showActions ? 0 : 12)
+            backHomeButton
+                .opacity(showBackHomeLink ? 1 : 0)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - Actions (finished only)
+
+    @ViewBuilder
+    private var finishedActions: some View {
+        VStack(spacing: 18) {
+            // Same placeholder wiring as the locked screen's Follow CTA — no
+            // real follow backend yet.
+            PrimaryActionButton(title: "+ Follow \(firstName)", background: .copper, action: onBackHome)
+                .opacity(showActions ? 1 : 0)
+                .offset(y: showActions ? 0 : 12)
+
+            if artist != nil {
+                PrimaryActionButton(
+                    title: "Share Journey",
+                    icon: Image(systemName: "square.and.arrow.up"),
+                    action: { showSharePreview = true }
+                )
+                .opacity(showActions ? 1 : 0)
+                .offset(y: showActions ? 0 : 12)
             }
+
+            backHomeButton
+                .opacity(showBackHomeLink ? 1 : 0)
         }
         .padding(.horizontal, 24)
     }
@@ -384,6 +396,11 @@ struct ChapterCompleteView: View {
             withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 2 * beatGap)) {
                 showActions = true
             }
+            // Back home link only starts once the CTAs above it have fully
+            // landed — the last thing to arrive, not overlapping with them.
+            withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 2 * beatGap + beatFade + backHomeLinkGap)) {
+                showBackHomeLink = true
+            }
         }
     }
 
@@ -408,7 +425,7 @@ struct ChapterCompleteView: View {
         switch variant {
         case .unlocked: return ""
         case .locked:   return "Complete."
-        case .finished: return "That's a wrap."
+        case .finished: return "You did it."
         }
     }
 
@@ -435,14 +452,6 @@ struct ChapterCompleteView: View {
         artist?.name.split(separator: " ").first.map(String.init) ?? "the artist"
     }
 
-    private func romanNumeral(_ value: Int) -> String {
-        switch value {
-        case 1: return "I"
-        case 2: return "II"
-        case 3: return "III"
-        default: return "\(value)"
-        }
-    }
 }
 
 #if DEBUG

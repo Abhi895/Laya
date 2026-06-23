@@ -250,15 +250,6 @@ struct JourneyPlayerView: View {
         guard !chapter.videos.isEmpty else { return 0 }
         return Double(currentIndex + 1) / Double(chapter.videos.count)
     }
-
-    private func romanNumeral(_ value: Int) -> String {
-        switch value {
-        case 1: return "I"
-        case 2: return "II"
-        case 3: return "III"
-        default: return "\(value)"
-        }
-    }
 }
 
 // MARK: - Video cell

@@ -41,6 +41,8 @@ struct HomeReturnView: View {
     // holding the real watched-progress data.
     private let onContinue: (Chapter, Bool) -> Void
 
+    @State private var showSharePreview = false
+
     init(service: AssignmentServing,
          isSessionActive: Bool = false,
          onContinue: @escaping (Chapter, Bool) -> Void = { _, _ in }) {
@@ -71,43 +73,55 @@ struct HomeReturnView: View {
 
                     Spacer(minLength: 30)
 
-                    // Sharp, fully-identified portrait — the same shared card as
-                    // the reveal screen, so it reads as the very same artist.
+                    // Sharp portrait throughout — the completed state only
+                    // drops the meta line, not focus.
                     ArtistCard(width: geo.size.width * 0.72,
                                artist: artist,
                                blurRadius: 0,
                                showName: true,
                                showMeta: true,
-                               includesMeta: true)
+                               includesMeta: !isJourneyComplete)
 
                     // Tight gap so the progress track reads as belonging to the card.
                     Spacer().frame(height: 35)
 
-                    ChapterProgressTrack(chapters: chapters,
-                                         watchedVideoIds: watchedVideoIds,
-                                         weekStartDate: weekStartDate)
+                    VStack(spacing: 12) {
+                        ChapterProgressTrack(chapters: chapters,
+                                             watchedVideoIds: watchedVideoIds,
+                                             weekStartDate: weekStartDate,
+                                             showLabels: !isJourneyComplete)
+                        if isJourneyComplete {
+                            Text("All chapters completed.")
+                                .font(.layaBody(13, weight: .light))
+                                .foregroundStyle(.ink.opacity(0.45))
+                        }
+                    }
                     .padding(.horizontal, 24)
 
                     Spacer(minLength: 30)
 
-                    VStack(spacing: 14) {
-                        PrimaryActionButton(
-                            title: isCurrentChapterUnlocked ? "Continue" : "Stream \(firstName)'s music",
-                            icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
-                            action: {
-                                guard isCurrentChapterUnlocked, let chapter = currentChapter else {
-                                    // TODO: route to artist.spotifyArtistId once Spotify linking is wired up.
-                                    return
+                    if isJourneyComplete {
+                        completedActions
+                    } else {
+                        VStack(spacing: 14) {
+                            PrimaryActionButton(
+                                title: isCurrentChapterUnlocked ? "Continue" : "Stream \(firstName)'s music",
+                                icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
+                                action: {
+                                    guard isCurrentChapterUnlocked, let chapter = currentChapter else {
+                                        // TODO: route to artist.spotifyArtistId once Spotify linking is wired up.
+                                        return
+                                    }
+                                    onContinue(chapter, isCurrentChapterStarted)
                                 }
-                                onContinue(chapter, isCurrentChapterStarted)
-                            }
-                        )
-                        timeLeftLabel
+                            )
+                            timeLeftLabel
+                        }
+                        // Same inset as the progress track so the CTA grounds itself
+                        // in the same content column as the card and track above it.
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 44)
                     }
-                    // Same inset as the progress track so the CTA grounds itself
-                    // in the same content column as the card and track above it.
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 44)
                 }
                 .padding(.horizontal, 32)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -118,6 +132,46 @@ struct HomeReturnView: View {
             }
         }
         .task(id: isSessionActive) { await load() }
+        .fullScreenCover(isPresented: $showSharePreview) {
+            if let artist {
+                ShareArtifactPreviewView(artist: artist, onDismiss: { showSharePreview = false })
+            }
+        }
+    }
+
+    // MARK: - Completed actions
+
+    // Follow (placeholder — no real follow backend yet) + Share Journey
+    // (reuses the same artifact preview wired up from ChapterCompleteView's
+    // finished screen) + the inset/padding the active-state CTA column uses.
+    private var completedActions: some View {
+        VStack(spacing: 14) {
+            PrimaryActionButton(title: "+ Follow \(firstName)", action: {})
+            outlineButton(title: "Share Journey", icon: "square.and.arrow.up") {
+                showSharePreview = true
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 44)
+    }
+
+    // Bordered counterpart to PrimaryActionButton — same capsule/sizing/font,
+    // but an ink outline on cream rather than a filled background, so Share
+    // Journey reads as the secondary action beneath Follow.
+    private func outlineButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                Text(title)
+                    .font(.layaBody(17, weight: .semibold))
+            }
+            .foregroundStyle(.ink)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Capsule().strokeBorder(Color.ink.opacity(0.85), lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
     }
 
     #if DEBUG
@@ -130,6 +184,22 @@ struct HomeReturnView: View {
         VStack {
             HStack {
                 Spacer()
+                // Marks every chapter before the last as watched and unlocks
+                // the week, so the next Continue tap drops straight into the
+                // last chapter — one debug Skip away from the real finished
+                // screen / share artifact.
+                Button(action: {
+                    MockAssignmentService.skipToFinished()
+                    Task { await load() }
+                }) {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.ink.opacity(0.6))
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(.ink.opacity(0.08)))
+                }
+                .padding(.trailing, 10)
+
                 Button(action: {
                     hasBegunJourney = false
                     hasCompletedOnboarding = false
@@ -153,13 +223,20 @@ struct HomeReturnView: View {
 
     private var header: some View {
         VStack(spacing: 6) {
-            Text("Welcome, Abhi!")
+            Text(isJourneyComplete ? "Congrats!" : "Welcome, Abhi!")
                 .font(.layaDisplay(38))
                 .foregroundStyle(.ink)
 
-            Text("Pick up where you left off.")
+            Text(isJourneyComplete ? "You've completed this week's journey." : "Pick up where you left off.")
                 .font(.layaBody(15, weight: .light))
                 .foregroundStyle(.ink.opacity(0.55))
+
+            if isJourneyComplete {
+                Text(nextJourneyLabel)
+                    .font(.layaBody(13, weight: .light))
+                    .foregroundStyle(.ink.opacity(0.4))
+                    .padding(.top, 2)
+            }
         }
     }
 
@@ -210,13 +287,23 @@ struct HomeReturnView: View {
         artist?.name.split(separator: " ").first.map(String.init) ?? "the artist"
     }
 
-    private func romanNumeral(_ value: Int) -> String {
-        switch value {
-        case 1: return "I"
-        case 2: return "II"
-        case 3: return "III"
-        default: return "\(value)"
-        }
+    // Every chapter watched — the week's whole journey, not just the current one.
+    private var isJourneyComplete: Bool {
+        !chapters.isEmpty && chapters.allSatisfy { $0.isComplete(watchedVideoIds) }
+    }
+
+    // Weeks run on a fixed 7-day cadence from weekStartDate, so the next
+    // journey's start is simply one week on from this one.
+    private var nextJourneyLabel: String {
+        let calendar = Calendar.current
+        let nextStart = calendar.date(byAdding: .day, value: 7, to: weekStartDate) ?? weekStartDate
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: Date()),
+            to: calendar.startOfDay(for: nextStart)
+        ).day ?? 0
+        guard days > 0 else { return "Next journey soon." }
+        return "Next journey in \(days) day\(days == 1 ? "" : "s")."
     }
 
     // MARK: - Loading
@@ -244,6 +331,9 @@ private struct ChapterProgressTrack: View {
     let chapters: [Chapter]
     let watchedVideoIds: Set<String>
     let weekStartDate: Date
+    // Hidden once the whole journey's done — the caller shows one shared
+    // "All chapters completed." caption below the track instead.
+    var showLabels: Bool = true
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -252,7 +342,9 @@ private struct ChapterProgressTrack: View {
                     pill(for: chapter)
                         .frame(height: 12)
 
-                    label(for: chapter)
+                    if showLabels {
+                        label(for: chapter)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -309,15 +401,6 @@ private struct ChapterProgressTrack: View {
     // still unwatched (whether it's the current chapter or not) reads the same.
     private func labelOpacity(for chapter: Chapter) -> Double {
         chapter.isComplete(watchedVideoIds) ? 0.7 : 0.55
-    }
-
-    private func romanNumeral(_ value: Int) -> String {
-        switch value {
-        case 1: return "I"
-        case 2: return "II"
-        case 3: return "III"
-        default: return "\(value)"
-        }
     }
 }
 
