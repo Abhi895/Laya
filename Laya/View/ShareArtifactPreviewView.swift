@@ -29,7 +29,7 @@ struct ShareArtifactPreviewView: View {
                 // The live SwiftUI view, not the rendered UIImage — pixel-identical
                 // layout to what ImageRenderer produces, no flash-of-blank while
                 // the render completes.
-                JourneyShareArtifactView(artist: artist)
+                JourneyShareArtifactView(artist: artist, animated: true)
                     .shadow(color: .black.opacity(0.4), radius: 24, y: 12)
 
                 Spacer(minLength: 0)

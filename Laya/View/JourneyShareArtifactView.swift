@@ -14,12 +14,20 @@ import SwiftUI
 struct JourneyShareArtifactView: View {
     let artist: Artist
     var totalChapters: Int = 3
+    // Live preview only — the share image itself must render one fixed,
+    // calm frame, never a mid-pulse one, so this defaults to false and is
+    // only switched on by the on-screen instance in ShareArtifactPreviewView.
+    var animated: Bool = false
 
     static let cardWidth: CGFloat = 360
     static let cardHeight: CGFloat = 552
     private static let cornerRadius: CGFloat = 23
     private static let photoHeight: CGFloat = 360
     private static let gradientHeight: CGFloat = 760
+
+    // Drives the numeral row's "breathing" glow — toggled by a repeating
+    // animation, only ever armed when `animated` is true.
+    @State private var breathe = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -35,6 +43,12 @@ struct JourneyShareArtifactView: View {
         .frame(width: Self.cardWidth, height: Self.cardHeight, alignment: .top)
         .background(Color.ink)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .onAppear {
+            guard animated else { return }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                breathe = true
+            }
+        }
     }
 
     // Top-down darkening so the logo and "Journey Complete" eyebrow stay
@@ -147,14 +161,26 @@ struct JourneyShareArtifactView: View {
             Spacer().frame(height: 22)
 
             RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters)
-                .background(
-                    Ellipse()
-                        .fill(Color.copper.opacity(0.35))
-                        .frame(width: 170, height: 34)
-                        .blur(radius: 18)
-                )
+                .background(numeralRowGlow)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+    }
+
+    // Same stacked-shadow technique as the hold-to-reveal ring on the home
+    // screen (HomeView's progressRing) — a thin solid copper line with
+    // layered glows, rather than one soft blurred blob. No fixed width, so
+    // it stretches to exactly the numeral row's own width via .background.
+    // `breathe` (armed only when `animated`) pulses the bloom so the card
+    // reads as quietly alive; the shared image itself always renders the
+    // resting (non-pulsed) intensity.
+    private var numeralRowGlow: some View {
+        let intensity = breathe ? 1.0 : 0.6
+        return Capsule()
+            .fill(Color.copper)
+            .frame(height: 1.5)
+            .shadow(color: .copper.opacity(0.9 * intensity), radius: 12)
+            .shadow(color: .copper.opacity(0.7 * intensity), radius: 6)
+            .shadow(color: .copper.opacity(0.55 * intensity), radius: 2)
     }
 }
 
