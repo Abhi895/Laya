@@ -36,6 +36,12 @@ extension Journey {
         artistId: "artist-tayo-james",
         chapters: [.mockBackground, .mockMusic, .mockGoals]
     )
+
+    static let mockBubba = Journey(
+        id: "journey-bubba-itb",
+        artistId: "artist-bubba-itb",
+        chapters: [.mockBubbaBackground, .mockBubbaMusic, .mockBubbaGoals]
+    )
 }
 
 extension Chapter {
@@ -64,6 +70,33 @@ extension Chapter {
         subtitle: "Where he's headed.",
         unlockOffsetDays: 5,
         videos: JourneyVideo.mockGoalsVideos
+    )
+
+    static let mockBubbaBackground = Chapter(
+        id: "chapter-bubba-background",
+        index: 0,
+        title: "Background",
+        subtitle: "Where Bubba began.",
+        unlockOffsetDays: 0,
+        videos: JourneyVideo.mockBubbaBackgroundVideos
+    )
+
+    static let mockBubbaMusic = Chapter(
+        id: "chapter-bubba-music",
+        index: 1,
+        title: "Music",
+        subtitle: "The sound Bubba's known for.",
+        unlockOffsetDays: 2,
+        videos: JourneyVideo.mockBubbaMusicVideos
+    )
+
+    static let mockBubbaGoals = Chapter(
+        id: "chapter-bubba-goals",
+        index: 2,
+        title: "Goals",
+        subtitle: "Where Bubba's headed.",
+        unlockOffsetDays: 5,
+        videos: JourneyVideo.mockBubbaGoalsVideos
     )
 }
 
@@ -112,6 +145,55 @@ extension JourneyVideo {
     static let mockGoalsVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-goals-1",
+            videoURL: URL(string: "https://media.w3.org/2010/05/sintel/trailer.mp4")!,
+            posterURL: nil,
+            kind: .interview,
+            title: "Making it big",
+            spotifyTrackId: nil        )
+    ]
+
+    // Bubba's journey reuses the same bundled/sample sources as Tayo's —
+    // no new media exists yet, only new ids so progress between the two
+    // journeys never collides.
+    static let mockBubbaBackgroundVideos: [JourneyVideo] = [
+        JourneyVideo(
+            id: "video-bubba-bg-1",
+            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            posterURL: nil,
+            kind: .interview,
+            title: "Growing up",
+            spotifyTrackId: nil        ),
+        JourneyVideo(
+            id: "video-bubba-bg-2",
+            videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
+            posterURL: nil,
+            kind: .bts,
+            title: "In the studio",
+            spotifyTrackId: nil        )
+    ]
+
+    static let mockBubbaMusicVideos: [JourneyVideo] = [
+        JourneyVideo(
+            id: "video-bubba-music-1",
+            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            posterURL: nil,
+            kind: .musicVideo,
+            title: "Know it",
+            spotifyTrackId: "spotify-track-123"
+        ),
+        JourneyVideo(
+            id: "video-bubba-music-2",
+            videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
+            posterURL: nil,
+            kind: .live,
+            title: "Heart of Darkness",
+            spotifyTrackId: "spotify-track-456"
+        )
+    ]
+
+    static let mockBubbaGoalsVideos: [JourneyVideo] = [
+        JourneyVideo(
+            id: "video-bubba-goals-1",
             videoURL: URL(string: "https://media.w3.org/2010/05/sintel/trailer.mp4")!,
             posterURL: nil,
             kind: .interview,

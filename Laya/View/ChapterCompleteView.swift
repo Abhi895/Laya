@@ -129,7 +129,7 @@ struct ChapterCompleteView: View {
                     // Frame is fixed and explicit (not inferred from the image), so the
                     // source photo's own dimensions/aspect ratio can never affect this
                     // view's layout — only what's visible inside this exact box changes.
-                    Image("artistCard")
+                    Image(artist?.imageName ?? "artistCard")
                         .resizable()
                         .scaledToFill()
                         .frame(width: geo.size.width, height: 520)

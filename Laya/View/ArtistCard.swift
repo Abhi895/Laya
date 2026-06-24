@@ -36,7 +36,7 @@ struct ArtistCard: View {
         ZStack {
             // Obscured artist photo — constrained to the card size so the image
             // can't dictate the ZStack's layout and push the labels past the edges.
-            Image("artistCard")
+            Image(artist?.imageName ?? "artistCard")
                 .resizable()
                 .scaledToFill()
                 .frame(width: width, height: height)

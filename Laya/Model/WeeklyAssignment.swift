@@ -29,45 +29,16 @@ struct JourneyProgress: Codable {
     var completedAt: Date?
 }
 
-#if DEBUG
 extension WeeklyAssignment {
-    static let mock = WeeklyAssignment(
-        id: "assignment-mock",
-        userId: "user-mock",
-        journeyId: "journey-tayo-james",
-        // Anchored 3 days back so Music (offset 2) reads as unlocked and Goals
-        // (offset 5) reads as locked — lets both completion-screen variants be
-        // exercised by playing Background → Music in one run.
-        weekStartDate: Calendar.current.date(
-            byAdding: .day, value: -3,
-            to: Calendar.current.startOfDay(for: Date())
-        )!,
-        assignedAt: Date(),
-        progress: JourneyProgress(
-            watchedVideoIds: [],
-            lastWatchedVideoId: nil,
-            completedAt: nil
-        )
-    )
-
-    // Debug-only variant — anchored far enough back that every chapter,
-    // including the last (offset 5), reads as unlocked. Backs the "Skip to
-    // finished" debug shortcut so the real finished-screen / share-artifact
-    // flow can be reached without waiting on real unlock dates.
-    static let mockAllUnlocked = WeeklyAssignment(
-        id: "assignment-mock",
-        userId: "user-mock",
-        journeyId: "journey-tayo-james",
-        weekStartDate: Calendar.current.date(
-            byAdding: .day, value: -7,
-            to: Calendar.current.startOfDay(for: Date())
-        )!,
-        assignedAt: Date(),
-        progress: JourneyProgress(
-            watchedVideoIds: [],
-            lastWatchedVideoId: nil,
-            completedAt: nil
-        )
-    )
+    /// The real-world Monday at 00:00 on/before `date` — the actual weekly
+    /// rollover boundary, independent of locale/region week settings (Sunday-
+    /// vs-Monday-first calendars). `MockAssignmentService` uses this both to
+    /// pick which mock artist is "this week's" and to drive chapter unlocks.
+    static func currentWeekStartDate(from date: Date = Date()) -> Date {
+        let calendar = Calendar(identifier: .gregorian)
+        let startOfDay = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: startOfDay) // 1=Sun...7=Sat
+        let daysSinceMonday = (weekday + 5) % 7
+        return calendar.date(byAdding: .day, value: -daysSinceMonday, to: startOfDay) ?? startOfDay
+    }
 }
-#endif

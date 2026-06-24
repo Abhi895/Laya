@@ -185,6 +185,22 @@ struct HomeReturnView: View {
                 .accessibilityLabel("Debug: skip to finished")
                 .padding(.trailing, 6)
 
+                // Advances the forced rotation override to the next mock
+                // artist's week, so it can be previewed immediately instead
+                // of waiting for a real Monday rollover.
+                Button(action: {
+                    MockAssignmentService.cycleForcedArtist()
+                    Task { await load() }
+                }) {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.ink.opacity(0.6))
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(.ink.opacity(0.08)))
+                }
+                .accessibilityLabel("Debug: next artist")
+                .padding(.trailing, 6)
+
                 Button(action: {
                     hasBegunJourney = false
                     hasCompletedOnboarding = false
@@ -408,10 +424,16 @@ private struct ChapterProgressTrack: View {
 // (Music) current and partway through, III upcoming.
 private struct ReturnPreviewService: AssignmentServing {
     func fetchCurrentAssignment(for userId: String) async throws -> AssignmentPackage {
-        var assignment = WeeklyAssignment.mock
         let watched = Chapter.mockBackground.videos.map(\.id)
             + [Chapter.mockMusic.videos[0].id]
-        assignment.progress.watchedVideoIds = Set(watched)
+        let assignment = WeeklyAssignment(
+            id: "assignment-preview",
+            userId: userId,
+            journeyId: Journey.mock.id,
+            weekStartDate: WeeklyAssignment.currentWeekStartDate(),
+            assignedAt: Date(),
+            progress: JourneyProgress(watchedVideoIds: Set(watched), lastWatchedVideoId: nil, completedAt: nil)
+        )
         return AssignmentPackage(assignment: assignment, journey: .mock, artist: .mock)
     }
     func updateProgress(_ progress: JourneyProgress, assignmentId: String) async throws {}
