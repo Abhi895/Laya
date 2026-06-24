@@ -44,15 +44,34 @@ struct RomanProgressRow: View {
     var body: some View {
         HStack(spacing: 10) {
             ForEach(0..<totalChapters, id: \.self) { i in
-                Text(romanNumeral(i + 1))
-                    .font(.layaDisplay(13))
-                    .tracking(1)
-                    .foregroundStyle(Color.copper.opacity(i < filledCount ? 1.0 : 0.32))
+                numeral(i)
 
                 if i < totalChapters - 1 {
                     dash(filled: i < filledCount - 1)
                 }
             }
+        }
+    }
+
+    // Text glyphs are already organic shapes (not rectangular), so a direct
+    // .shadow() reads as a clean glow with no boxy-silhouette risk — unlike
+    // the dash, which needed the blurred-capsule-behind trick. Glowing the
+    // numerals too (not just the dashes) keeps the whole row reading as one
+    // cohesive warm strip, matching how the hold-to-reveal ring glows along
+    // its entire path rather than select segments.
+    @ViewBuilder
+    private func numeral(_ index: Int) -> some View {
+        let filled = index < filledCount
+        let text = Text(romanNumeral(index + 1))
+            .font(.layaDisplay(13))
+            .tracking(1)
+            .foregroundStyle(Color.copper.opacity(filled ? 1.0 : 0.32))
+        if glowIntensity > 0 {
+            text
+                .shadow(color: .copper.opacity(0.8 * glowIntensity), radius: 5)
+                .shadow(color: .copper.opacity(0.55 * glowIntensity), radius: 2.5)
+        } else {
+            text
         }
     }
 
