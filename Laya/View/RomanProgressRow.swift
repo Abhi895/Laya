@@ -53,51 +53,38 @@ struct RomanProgressRow: View {
         }
     }
 
-    // Text glyphs are already organic shapes (not rectangular), so a direct
-    // .shadow() reads as a clean glow with no boxy-silhouette risk — unlike
-    // the dash, which needed the blurred-capsule-behind trick. Glowing the
-    // numerals too (not just the dashes) keeps the whole row reading as one
-    // cohesive warm strip, matching how the hold-to-reveal ring glows along
-    // its entire path rather than select segments.
+    // Both the numerals and dashes glow via this one shadow stack, so the
+    // whole row reads as a single uniform glow rather than two different
+    // effects that happen to be the same color. Capsule's rounded caps and
+    // Text's organic glyph shapes both take a direct .shadow() cleanly (no
+    // boxy-silhouette risk — that only showed up with Rectangle's hard
+    // corners) so neither needs the old blurred-duplicate-behind trick.
     @ViewBuilder
+    private func glow<Content: View>(_ content: Content, baseOpacity: Double) -> some View {
+        if glowIntensity > 0 {
+            content
+                .shadow(color: .copper.opacity(min(1, baseOpacity * glowIntensity)), radius: 4)
+                .shadow(color: .copper.opacity(min(1, baseOpacity * 0.7 * glowIntensity)), radius: 2)
+                .shadow(color: .copper.opacity(min(1, baseOpacity * 0.5 * glowIntensity)), radius: 1)
+        } else {
+            content
+        }
+    }
+
     private func numeral(_ index: Int) -> some View {
         let filled = index < filledCount
         let text = Text(romanNumeral(index + 1))
             .font(.layaDisplay(13))
             .tracking(1)
             .foregroundStyle(Color.copper.opacity(filled ? 1.0 : 0.32))
-        if glowIntensity > 0 {
-            text
-                .shadow(color: .copper.opacity(min(1, 1.1 * glowIntensity)), radius: 9)
-                .shadow(color: .copper.opacity(min(1, 0.9 * glowIntensity)), radius: 5)
-                .shadow(color: .copper.opacity(min(1, 0.7 * glowIntensity)), radius: 2)
-        } else {
-            text
-        }
+        return glow(text, baseOpacity: filled ? 1.0 : 0.5)
     }
 
-    // A single blurred Capsule behind the crisp line, rather than several
-    // stacked .shadow() layers on a Rectangle — shadows on a hard-cornered
-    // shape leave a visible rectangular silhouette at the glow's edge;
-    // rounded caps plus one soft blur read as a true glow instead.
-    @ViewBuilder
     private func dash(filled: Bool) -> some View {
-        let opacity = filled ? 0.7 : 0.25
-        // Glow opacity/size is boosted well past the crisp line's own
-        // opacity — the line stays thin and precise, the glow behind it
-        // does the work of actually being seen.
-        let glowOpacity = min(1, (filled ? 1.0 : 0.5) * glowIntensity)
-        ZStack {
-            if glowIntensity > 0 {
-                Capsule()
-                    .fill(Color.copper.opacity(glowOpacity))
-                    .frame(height: 10)
-                    .blur(radius: 7)
-            }
-            Capsule()
-                .fill(Color.copper.opacity(opacity))
-                .frame(height: 1)
-        }
+        let line = Capsule()
+            .fill(Color.copper.opacity(filled ? 0.7 : 0.25))
+            .frame(height: 1)
+        return glow(line, baseOpacity: filled ? 1.0 : 0.5)
     }
 }
 
