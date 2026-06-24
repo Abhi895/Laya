@@ -68,8 +68,9 @@ struct RomanProgressRow: View {
             .foregroundStyle(Color.copper.opacity(filled ? 1.0 : 0.32))
         if glowIntensity > 0 {
             text
-                .shadow(color: .copper.opacity(0.8 * glowIntensity), radius: 5)
-                .shadow(color: .copper.opacity(0.55 * glowIntensity), radius: 2.5)
+                .shadow(color: .copper.opacity(min(1, 1.1 * glowIntensity)), radius: 9)
+                .shadow(color: .copper.opacity(min(1, 0.9 * glowIntensity)), radius: 5)
+                .shadow(color: .copper.opacity(min(1, 0.7 * glowIntensity)), radius: 2)
         } else {
             text
         }
@@ -82,12 +83,16 @@ struct RomanProgressRow: View {
     @ViewBuilder
     private func dash(filled: Bool) -> some View {
         let opacity = filled ? 0.7 : 0.25
+        // Glow opacity/size is boosted well past the crisp line's own
+        // opacity — the line stays thin and precise, the glow behind it
+        // does the work of actually being seen.
+        let glowOpacity = min(1, (filled ? 1.0 : 0.5) * glowIntensity)
         ZStack {
             if glowIntensity > 0 {
                 Capsule()
-                    .fill(Color.copper.opacity(opacity * glowIntensity))
-                    .frame(height: 5)
-                    .blur(radius: 3.5)
+                    .fill(Color.copper.opacity(glowOpacity))
+                    .frame(height: 10)
+                    .blur(radius: 7)
             }
             Capsule()
                 .fill(Color.copper.opacity(opacity))
