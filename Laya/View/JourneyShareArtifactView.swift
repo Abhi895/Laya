@@ -152,7 +152,7 @@ struct JourneyShareArtifactView: View {
                 .foregroundStyle(.copper)
                 .padding(.vertical, 14)
 
-            Text("\u{201C}\(artist.quote)\u{201D}")
+            Text("\u{201C}\(artist.displayQuote)\u{201D}")
                 .font(.layaDisplay(17))
                 .tracking(1)
                 .foregroundStyle(.cream.opacity(0.85))

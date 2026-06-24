@@ -208,7 +208,7 @@ struct HomeReturnView: View {
     // it just calmly reflects status, same as the in-progress greeting does.
     private var header: some View {
         VStack(spacing: 6) {
-            Text("Welcome, Abhi!")
+            Text("Welcome, Abhi.")
                 .font(.layaDisplay(38))
                 .foregroundStyle(.ink)
 

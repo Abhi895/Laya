@@ -14,6 +14,17 @@ struct Artist: Codable, Identifiable {
     let spotifyArtistId: String?
 }
 
+extension Artist {
+    // Falls back to a warm, generic thank-you if an artist has no curated
+    // quote yet — the share artifact should never render bare quote marks
+    // with nothing inside them.
+    var displayQuote: String {
+        quote.isEmpty ? Artist.defaultQuote : quote
+    }
+
+    static let defaultQuote = "Thank you for being part of this with me — it means more than you know."
+}
+
 #if DEBUG
 extension Artist {
     static let mock = Artist(
