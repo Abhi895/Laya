@@ -85,7 +85,7 @@ struct HomeReturnView: View {
                     // Tight gap so the progress track reads as belonging to the card.
                     Spacer().frame(height: 35)
 
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 14) {
                         ChapterProgressTrack(chapters: chapters,
                                              watchedVideoIds: watchedVideoIds,
                                              weekStartDate: weekStartDate,
@@ -98,7 +98,10 @@ struct HomeReturnView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    Spacer(minLength: 30)
+                    // The completed state stacks two CTAs instead of one —
+                    // a touch more room here keeps it from reading denser
+                    // than the rest of the screen's spacing rhythm.
+                    Spacer(minLength: isJourneyComplete ? 40 : 30)
 
                     if isJourneyComplete {
                         completedActions
@@ -318,8 +321,9 @@ private struct ChapterProgressTrack: View {
     let chapters: [Chapter]
     let watchedVideoIds: Set<String>
     let weekStartDate: Date
-    // Hidden once the whole journey's done — the caller shows one shared
-    // "All chapters completed." caption below the track instead.
+    // Drops chapter titles (the caller shows one shared "All chapters
+    // completed." caption below the track instead) once the whole journey's
+    // done — but each pill still shows its bare roman numeral; see label(for:).
     var showLabels: Bool = true
 
     var body: some View {
@@ -329,9 +333,7 @@ private struct ChapterProgressTrack: View {
                     pill(for: chapter)
                         .frame(height: 12)
 
-                    if showLabels {
-                        label(for: chapter)
-                    }
+                    label(for: chapter)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -368,10 +370,17 @@ private struct ChapterProgressTrack: View {
     // the title for a clock glyph at a fixed, low opacity — there's nothing
     // useful to read yet, so naming the chapter just invites someone to wonder
     // why they can't tap into it; a clock reads as "time, not access" more
-    // than a lock would.
+    // than a lock would. Once the whole journey's done, titles drop (the
+    // caption below the track already says "all completed") but the roman
+    // numeral itself stays — every other surface in the app identifies
+    // chapters by numeral, so this is the one place that shouldn't go bare.
     @ViewBuilder
     private func label(for chapter: Chapter) -> some View {
-        if chapter.isUnlocked(weekStartDate: weekStartDate) {
+        if !showLabels {
+            Text(romanNumeral(chapter.index + 1))
+                .font(.layaDisplay(12))
+                .foregroundStyle(.ink.opacity(0.5))
+        } else if chapter.isUnlocked(weekStartDate: weekStartDate) {
             Text("\(romanNumeral(chapter.index + 1)) • \(chapter.title)")
                 .font(.layaDisplay(12))
                 .lineLimit(1)

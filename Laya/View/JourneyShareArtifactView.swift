@@ -75,7 +75,7 @@ struct JourneyShareArtifactView: View {
             // Scaled to fill a taller-than-needed rect first, then clipped down
             // to the real photo height anchored to the top — so any cropping
             // comes off the bottom (legs/torso), never the top (the head).
-            Image("artistCard2")
+            Image("artistCard")
                 .resizable()
                 .scaledToFill()
                 .frame(width: Self.cardWidth, height: Self.photoHeight * 1.45)

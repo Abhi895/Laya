@@ -234,7 +234,7 @@ struct ChapterCompleteView: View {
 
                     // Back home text link — lands last, after the CTA above it.
                     Button(action: onBackHome) {
-                        Text("Back Home")
+                        Text("Back home")
                             .font(.layaBody(14, weight: .regular))
                             .foregroundStyle(.cream.opacity(0.3))
                             .frame(maxWidth: .infinity, alignment: .center)
