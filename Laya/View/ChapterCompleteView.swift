@@ -222,9 +222,15 @@ struct ChapterCompleteView: View {
 
                     Spacer().frame(height: 58)
 
-                    // Follow CTA
+                    // Follow CTA — copper, not the default espresso fill: this
+                    // screen's background is ink, and espresso-on-ink is too
+                    // close in value to read clearly. Copper is already this
+                    // screen's accent (the "Drops Thursday" eyebrow), so it
+                    // reads as the dark screen's natural accent rather than
+                    // an arbitrary exception to the cream screens' Follow fill.
                     PrimaryActionButton(
                         title: "+ Follow \(firstName)",
+                        background: .copper,
                         action: onBackHome
                     )
                     .opacity(showActions ? 1 : 0)
