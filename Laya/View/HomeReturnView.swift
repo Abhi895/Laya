@@ -202,13 +202,17 @@ struct HomeReturnView: View {
 
     // MARK: - Header
 
+    // The celebration itself belongs entirely to ChapterCompleteView's
+    // finished screen — a one-time payoff. This is the persistent home base
+    // the user returns to all week, so it never re-announces "congrats";
+    // it just calmly reflects status, same as the in-progress greeting does.
     private var header: some View {
         VStack(spacing: 6) {
-            Text(isJourneyComplete ? "Congrats!" : "Welcome, Abhi!")
+            Text("Welcome, Abhi!")
                 .font(.layaDisplay(38))
                 .foregroundStyle(.ink)
 
-            Text(isJourneyComplete ? "You've completed this week's journey." : "Pick up where you left off.")
+            Text(isJourneyComplete ? "You're all caught up this week." : "Pick up where you left off.")
                 .font(.layaBody(15, weight: .light))
                 .foregroundStyle(.ink.opacity(0.55))
 
