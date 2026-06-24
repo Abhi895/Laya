@@ -179,10 +179,11 @@ struct HomeReturnView: View {
                     Image(systemName: "forward.end.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.ink.opacity(0.6))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                         .background(Circle().fill(.ink.opacity(0.08)))
                 }
-                .padding(.trailing, 10)
+                .accessibilityLabel("Debug: skip to finished")
+                .padding(.trailing, 6)
 
                 Button(action: {
                     hasBegunJourney = false
@@ -192,10 +193,11 @@ struct HomeReturnView: View {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.ink.opacity(0.6))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                         .background(Circle().fill(.ink.opacity(0.08)))
                 }
-                .padding(.trailing, 20)
+                .accessibilityLabel("Debug: reset")
+                .padding(.trailing, 16)
             }
             .padding(.top, 8)
             Spacer()

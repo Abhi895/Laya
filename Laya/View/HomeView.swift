@@ -221,23 +221,24 @@ struct HomeView: View {
         VStack {
             HStack {
                 Spacer()
-                debugIcon("forward.end.fill", action: skip)
-                debugIcon("arrow.counterclockwise", action: reset)
-                    .padding(.trailing, 20)
+                debugIcon("forward.end.fill", label: "Debug: skip", action: skip)
+                debugIcon("arrow.counterclockwise", label: "Debug: reset", action: reset)
+                    .padding(.trailing, 16)
             }
             .padding(.top, 8)
             Spacer()
         }
     }
 
-    private func debugIcon(_ systemName: String, action: @escaping () -> Void) -> some View {
+    private func debugIcon(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.ink.opacity(0.6))
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(.ink.opacity(0.08)))
         }
+        .accessibilityLabel(label)
     }
 
     private func reset() {

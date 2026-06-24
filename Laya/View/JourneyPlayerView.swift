@@ -337,6 +337,7 @@ private struct SpotifyButton: View {
                 .foregroundStyle(.cream)
                 .padding(9)
         }
+        .accessibilityLabel("Save to Spotify")
     }
 }
 
@@ -350,10 +351,14 @@ private struct ShareButton: View {
                 .foregroundStyle(.cream)
                 .offset(y: -1)
         }
+        .accessibilityLabel("Share")
     }
 }
 
 // Shared circular treatment: thin cream ring, transparent fill, cream icon.
+// Frame is the full 44×44pt minimum tap target (Apple HIG) — the ring itself
+// can stay visually smaller via the icon's own padding, but the tappable
+// area shouldn't be.
 private struct CircleButton<Icon: View>: View {
     let action: () -> Void
     let icon: Icon
@@ -370,7 +375,7 @@ private struct CircleButton<Icon: View>: View {
                     .stroke(Color.cream.opacity(0.85), lineWidth: 1)
                 icon
             }
-            .frame(width: 42, height: 42)
+            .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
     }
