@@ -164,7 +164,7 @@ struct JourneyShareArtifactView: View {
             // so the card reads as quietly alive; the shared image itself
             // always renders the resting (non-pulsed) intensity.
             RomanProgressRow(totalChapters: totalChapters, filledCount: totalChapters,
-                              glowIntensity: breathe ? 1.0 : 0.6)
+                              glow: breathe ? .breathing : .resting)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }

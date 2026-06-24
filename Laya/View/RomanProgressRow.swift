@@ -25,12 +25,21 @@ func romanNumeral(_ value: Int) -> String {
 struct RomanProgressRow: View {
     let totalChapters: Int
     let filledCount: Int
-    // When > 0, the connecting dashes glow (matching the home screen's
-    // hold-to-reveal ring), at this intensity (0...1). Applied to each dash
-    // individually rather than as one full-width background — glowing the
-    // whole row at once bleeds light straight through the gaps either side
-    // of the numerals, erasing the spacing between them.
-    var glowIntensity: Double = 0
+    // The dashes glow (matching the home screen's hold-to-reveal ring) when
+    // shown live in the share-artifact preview — `.resting`/`.breathing` are
+    // its only two real intensities, so the caller picks one of those rather
+    // than guessing a raw number. `.none` (the default) is what every other
+    // context — e.g. a cream completion screen — actually wants.
+    enum Glow { case none, resting, breathing }
+    var glow: Glow = .none
+
+    private var glowIntensity: Double {
+        switch glow {
+        case .none: 0
+        case .resting: 0.6
+        case .breathing: 1.0
+        }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
