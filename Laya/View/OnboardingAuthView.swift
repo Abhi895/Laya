@@ -172,10 +172,10 @@ struct GrowingLogoMark: View {
             // sequence rather than a simultaneous scale-up. Low damping
             // means each one overshoots noticeably past full size before
             // settling, giving a pronounced little spring/bounce at the end.
-            withAnimation(.spring(response: 1.4, dampingFraction: 0.74).delay(0.2)) {
+            withAnimation(.spring(response: 1.4, dampingFraction: 0.66).delay(0.2)) {
                 stemGrown = true
             }
-            withAnimation(.spring(response: 1.3, dampingFraction: 0.74).delay(1.0)) {
+            withAnimation(.spring(response: 1.3, dampingFraction: 0.66).delay(0.5)) {
                 leafGrown = true
             }
         }
