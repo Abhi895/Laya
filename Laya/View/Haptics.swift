@@ -21,4 +21,12 @@ enum Haptics {
     static func success() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
+
+    /// One tick in a ramping sequence — e.g. a hold gesture's tension
+    /// building toward completion. `intensity` (0...1) controls how strong
+    /// this particular tick reads; callers ramp it up over the gesture.
+    static func tick(intensity: Double) {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred(intensity: intensity)
+    }
 }

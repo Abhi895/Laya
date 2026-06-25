@@ -311,6 +311,9 @@ private struct RevealCard: View {
     @State private var blur: CGFloat = 16
     // True for the duration of an active press.
     @State private var isHolding = false
+    // Drives the ramping haptic tick during a hold — cancelled on release so
+    // it can't keep firing into a hold that's already unwinding.
+    @State private var hapticTask: Task<Void, Never>?
     // Bumped on every hold start and every release. The hold's completion
     // captures the token it started with and only fires if it still matches —
     // so a released hold can't trigger the reveal via SwiftUI's completion
@@ -445,11 +448,24 @@ private struct RevealCard: View {
             .onChanged { _ in
                 guard !isHolding, !isRevealed else { return }
 
-                Haptics.tap()
                 isHolding = true
                 holdToken += 1
                 holdStart = Date()
                 let token = holdToken
+                // Ramping haptic tick — speeds up and strengthens as the ring
+                // fills, so the tension building visually is felt too. Checks
+                // both the token and isRevealed each loop so a release or a
+                // fresh hold cleanly stops the previous one.
+                hapticTask?.cancel()
+                hapticTask = Task {
+                    while !Task.isCancelled, token == holdToken, !isRevealed {
+                        let progress = min(1, Date().timeIntervalSince(holdStart) / holdDuration)
+                        Haptics.tick(intensity: 0.3 + 0.7 * progress)
+                        if progress >= 1 { break }
+                        let interval = 0.22 - 0.16 * progress
+                        try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                    }
+                }
                 // Squeeze the card down to register the press.
                 withAnimation(.easeOut(duration: 0.2)) { cardScale = 0.97 }
                 withAnimation(.easeInOut(duration: holdDuration)) {
@@ -464,6 +480,7 @@ private struct RevealCard: View {
             .onEnded { _ in
                 guard !isRevealed else { return }
                 isHolding = false
+                hapticTask?.cancel()
                 // Invalidate the in-flight hold so its completion can't fire.
                 holdToken += 1
                 // Release before completion → ring unwinds back to empty.
