@@ -247,8 +247,8 @@ private struct OnboardingPressStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.86 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.7),
                        value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed { Haptics.tap() }
+            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { old, new in
+                new
             }
     }
 }

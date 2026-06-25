@@ -85,7 +85,7 @@ struct HomeView: View {
                         // into full focus the instant the artist is revealed.
                         .opacity(isRevealed ? 1 : 1 - 0.55 * Double(holdProgress))
 
-                    Spacer(minLength: 50)
+                    Spacer(minLength: 40)
 
                     RevealCard(width: geo.size.width * 0.72,
                                artist: artist,
@@ -373,6 +373,11 @@ private struct RevealCard: View {
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .gesture(holdGesture)
             .scaleEffect(cardScale)
+            // The release of tension once the hold completes — heavier than
+            // the ramping ticks during the hold so it reads as the payoff.
+            .sensoryFeedback(.impact(weight: .medium), trigger: isRevealed) { old, new in
+                new
+            }
             .onAppear {
                 // The revealed end-state (debug skip) needs no idle animation;
                 // holdProgress is 1 so the portrait is already sharp. Otherwise
@@ -509,7 +514,6 @@ private struct RevealCard: View {
     private func completeReveal() {
         guard isHolding, !isRevealed else { return }
         isHolding = false
-        Haptics.success()
 
         // Drives the ring/prompt clear and the parent's header/footer transition
         // plus the waterfall (the parent observes isRevealed).
