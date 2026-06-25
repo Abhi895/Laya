@@ -203,13 +203,6 @@ struct HomeView: View {
                 .opacity(stages.button ? 1 : 0)
                 .offset(y: stages.button ? 0 : 14)
 
-            // Quiet time-remaining — sits below Begin so the info that left the
-            // card on reveal still has a home, without competing with the CTA.
-            Text("4 days left this week")
-                .font(.layaBody(12, weight: .light))
-                .foregroundStyle(.ink.opacity(0.4))
-                .padding(.top, 5)
-                .opacity(stages.timeLeft ? 1 : 0)
         }
     }
 
@@ -359,6 +352,9 @@ private struct RevealCard: View {
                    artist: artist,
                    // Idle breathing blur, clearing toward sharp as the hold fills.
                    blurRadius: blur * (0.95 - holdProgress),
+                   // Grayscale at rest, coming into full colour alongside focus —
+                   // the artist arriving as the hold completes.
+                   saturation: Double(holdProgress),
                    showName: showName,
                    showMeta: showMeta,
                    // Keep the meta line reserved so the name doesn't jump up when

@@ -113,9 +113,17 @@ struct ChapterCompleteView: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 44)
         } else if variant == .locked {
-            // Dark editorial layout: a height-capped grayscale photo fading into the
-            // ink base beneath it, so the text panel always reads against solid ink
-            // rather than against whatever the photo happens to show at that height.
+            // Dark editorial layout: a height-capped photo fading into the ink
+            // base beneath it, so the text panel always reads against solid
+            // ink rather than against whatever the photo happens to show at
+            // that height. Full colour, not grayscale — by the time this
+            // screen shows, the artist has already been seen in colour in
+            // the chapter just watched, so dimming it back to gray would be
+            // undoing something already true rather than withholding it. A
+            // copper-tinted stop ahead of the ink ramp (the same trick the
+            // finished screen's share card uses) keeps any photo's palette
+            // from clashing with this screen's copper/ink accent regardless
+            // of its actual colours, without erasing the colour itself.
             GeometryReader { geo in
             ZStack(alignment: .top) {
                 // ── Background: photo + seamless fade, framed and clipped to the
@@ -134,14 +142,12 @@ struct ChapterCompleteView: View {
                         .scaledToFill()
                         .frame(width: geo.size.width, height: 520)
                         .clipped()
-                        .grayscale(1.0)
-                        .brightness(0.02)
 
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: 0),
                             .init(color: .clear, location: 110 / 1000),
-                            .init(color: Color.ink.opacity(0.18), location: 280 / 1000),
+                            .init(color: Color.copper.opacity(0.22), location: 280 / 1000),
                             .init(color: Color.ink.opacity(0.42), location: 360 / 1000),
                             .init(color: Color.ink.opacity(0.68), location: 425 / 1000),
                             .init(color: Color.ink.opacity(0.88), location: 470 / 1000),

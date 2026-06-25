@@ -18,6 +18,12 @@ struct ArtistCard: View {
     /// Portrait blur. 0 = sharp. The home screen drives this toward 0 as the
     /// hold fills; the completion screen holds it soft.
     var blurRadius: CGFloat = 0
+    /// Portrait colour. 0 = fully grayscale, 1 = full colour. The home
+    /// screen's pre-reveal card starts at 0 and drives this toward 1 in step
+    /// with the hold — the artist coming into colour alongside coming into
+    /// focus, both landing together as "discovered." Every other caller
+    /// already knows the artist, so they default to full colour.
+    var saturation: Double = 1
     /// Identity visibility — animated in during the home reveal, constant
     /// wherever the artist is already known.
     var showName: Bool = true
@@ -42,6 +48,7 @@ struct ArtistCard: View {
                 .frame(width: width, height: height)
                 .clipped()
                 .blur(radius: blurRadius)
+                .saturation(saturation)
 
             // Vignette — darkens the edges and draws the eye to the centre.
             RadialGradient(
@@ -64,7 +71,7 @@ struct ArtistCard: View {
         // Defined edge — a thin rim so the card reads against the cream background.
         .overlay(
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
-                .stroke(Color.cream.opacity(0.38), lineWidth: 5)
+                .stroke(Color.cream.opacity(0.38), lineWidth: 3)
         )
     }
 
