@@ -59,13 +59,8 @@ struct PressableButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.6),
                        value: configuration.isPressed)
-            // SwiftUI's own sensory-feedback API, not a hand-managed
-            // UIImpactFeedbackGenerator: it handles prepare()/impactOccurred()
-            // timing internally, which a manual generator only gets right if
-            // prepare() lands within ~1-2s of the actual fire — easy to get
-            // wrong (and silent/inconsistent on a real device when you do).
-            .sensoryFeedback(.impact(weight: .light), trigger: configuration.isPressed) { old, new in
-                new
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed { Haptics.tap() }
             }
     }
 }

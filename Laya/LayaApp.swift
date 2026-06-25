@@ -13,6 +13,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     FirebaseApp.configure()
     LayaFontRegistration.registerAll()
+    // Force the lazy singleton to initialize now, not on the first tap, so
+    // the haptic engine (and its keep-alive player) is already warm.
+    _ = Haptics.shared
 
     return true
   }

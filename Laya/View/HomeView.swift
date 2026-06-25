@@ -373,11 +373,6 @@ private struct RevealCard: View {
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .gesture(holdGesture)
             .scaleEffect(cardScale)
-            // The release of tension once the hold completes — heavier than
-            // the ramping ticks during the hold so it reads as the payoff.
-            .sensoryFeedback(.impact(weight: .medium), trigger: isRevealed) { old, new in
-                new
-            }
             .onAppear {
                 // The revealed end-state (debug skip) needs no idle animation;
                 // holdProgress is 1 so the portrait is already sharp. Otherwise
@@ -514,6 +509,7 @@ private struct RevealCard: View {
     private func completeReveal() {
         guard isHolding, !isRevealed else { return }
         isHolding = false
+        Haptics.success()
 
         // Drives the ring/prompt clear and the parent's header/footer transition
         // plus the waterfall (the parent observes isRevealed).
