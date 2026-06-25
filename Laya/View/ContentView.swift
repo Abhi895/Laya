@@ -31,6 +31,12 @@ struct ContentView: View {
     // animation when the user taps Continue before the spring finishes settling.
     @State private var sessionKey = UUID()
 
+    // TEMP-DEBUG: fires an unmissable haptic ~1s after launch, no interaction
+    // needed, to isolate whether *any* haptic works on this build/device
+    // before chasing further code theories. Remove once haptics are confirmed
+    // working on device.
+    @State private var debugHapticTrigger = false
+
     var body: some View {
         ZStack {
             if !hasCompletedOnboarding {
@@ -95,6 +101,12 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.75), value: hasCompletedOnboarding)
         .animation(.easeInOut(duration: 0.75), value: hasBegunJourney)
+        // TEMP-DEBUG: see debugHapticTrigger above.
+        .sensoryFeedback(.success, trigger: debugHapticTrigger)
+        .task {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            debugHapticTrigger.toggle()
+        }
     }
 
     // Spotify/guest both land here: the user has authenticated, so move off
