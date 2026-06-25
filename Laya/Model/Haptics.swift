@@ -47,7 +47,8 @@ final class Haptics {
                 self?.setupKeepAlive()
             }
         } catch {
-            print("Haptics: engine init failed: \(error)")
+            // No-op — haptics are a nice-to-have; a failed engine just means
+            // play(_:) below silently does nothing.
         }
 
         NotificationCenter.default.addObserver(
@@ -55,8 +56,8 @@ final class Haptics {
             object: nil, queue: .main
         ) { [weak self] _ in
             self?.engine?.start(completionHandler: { [weak self] error in
-                if let error { print("Haptics: restart on foreground failed: \(error)") }
-                else { self?.setupKeepAlive() }
+                guard error == nil else { return }
+                self?.setupKeepAlive()
             })
         }
     }
@@ -82,7 +83,7 @@ final class Haptics {
             try keepAlivePlayer?.sendParameters([mute], atTime: 0)
             try keepAlivePlayer?.start(atTime: CHHapticTimeImmediate)
         } catch {
-            print("Haptics: keep-alive setup failed: \(error)")
+            // No-op — see init's catch above.
         }
     }
 
@@ -98,7 +99,7 @@ final class Haptics {
             let player = try engine.makePlayer(with: pattern)
             try player.start(atTime: CHHapticTimeImmediate)
         } catch {
-            print("Haptics: play failed: \(error)")
+            // No-op — see init's catch above.
         }
     }
 

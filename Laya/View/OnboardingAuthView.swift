@@ -167,15 +167,17 @@ struct GrowingLogoMark: View {
         .aspectRatio(386.0 / 367.0, contentMode: .fit)
         .onAppear {
             // Slow, deliberate growth — like a flower's petals actually
-            // unfurling, not a quick pop-in. Stem grows first and is
-            // mostly settled before the leaf starts, so the two read as a
-            // sequence rather than a simultaneous scale-up. Low damping
-            // means each one overshoots noticeably past full size before
-            // settling, giving a pronounced little spring/bounce at the end.
-            withAnimation(.spring(response: 1.4, dampingFraction: 0.66).delay(0.2)) {
+            // unfurling, not a quick pop-in. An initial pause lets the
+            // screen itself settle in before anything starts moving. Stem
+            // grows first and is mostly settled before the leaf starts, so
+            // the two read as a sequence rather than a simultaneous scale-up.
+            // Low damping means each one overshoots noticeably past full
+            // size before settling, giving a pronounced little spring/bounce
+            // at the end.
+            withAnimation(.spring(response: 1.4, dampingFraction: 0.66).delay(0.7)) {
                 stemGrown = true
             }
-            withAnimation(.spring(response: 1.3, dampingFraction: 0.66).delay(0.5)) {
+            withAnimation(.spring(response: 1.3, dampingFraction: 0.66).delay(1.0)) {
                 leafGrown = true
             }
         }
