@@ -228,16 +228,17 @@ struct ChapterCompleteView: View {
 
                     Spacer().frame(height: 58)
 
-                    // Follow CTA — copper, not the default espresso fill: this
-                    // screen's background is ink, and espresso-on-ink is too
-                    // close in value to read clearly. Copper is already this
-                    // screen's accent (the "Drops Thursday" eyebrow), so it
-                    // reads as the dark screen's natural accent rather than
-                    // an arbitrary exception to the cream screens' Follow fill.
-                    PrimaryActionButton(
-                        title: "+ Follow \(firstName)",
-                        background: .copper,
-                        action: onBackHome
+                    // Copper, not the default espresso fill: this screen's
+                    // background is ink, and espresso-on-ink is too close in
+                    // value to read clearly. Copper is already this screen's
+                    // accent (the "Drops Thursday" eyebrow), so it reads as
+                    // the dark screen's natural accent.
+                    NotifyMeButton(
+                        style: .primary(background: .copper),
+                        label: "Notify me when it drops",
+                        date: Calendar.current.date(byAdding: .day, value: daysUntilUnlock, to: Date()) ?? Date(),
+                        notificationTitle: "Laya",
+                        notificationBody: "\(firstName)'s next chapter just dropped."
                     )
                     .opacity(showActions ? 1 : 0)
                     .offset(y: showActions ? 0 : 12)
@@ -330,9 +331,13 @@ struct ChapterCompleteView: View {
     @ViewBuilder
     private var finishedActions: some View {
         VStack(spacing: 18) {
-            // Same placeholder wiring as the locked screen's Follow CTA — no
-            // real follow backend yet.
-            PrimaryActionButton(title: "+ Follow \(firstName)", action: onBackHome)
+            NotifyMeButton(
+                style: .primary(background: .textPrimary),
+                label: "Notify me about next week",
+                date: Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date(),
+                notificationTitle: "Laya",
+                notificationBody: "Your next journey is ready."
+            )
                 .opacity(showActions ? 1 : 0)
                 .offset(y: showActions ? 0 : 12)
 

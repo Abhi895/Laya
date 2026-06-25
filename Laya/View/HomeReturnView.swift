@@ -119,6 +119,20 @@ struct HomeReturnView: View {
                                 }
                             )
                             timeLeftLabel
+
+                            // Only relevant once there's nothing left to watch
+                            // right now — while a chapter's still playable,
+                            // "Continue" is the only thing that matters here.
+                            if !isCurrentChapterUnlocked, let currentChapter {
+                                NotifyMeButton(
+                                    style: .secondary,
+                                    label: "Notify me when it drops",
+                                    date: currentChapter.unlockDate(weekStartDate: weekStartDate),
+                                    notificationTitle: "Laya",
+                                    notificationBody: "\(firstName)'s next chapter just dropped."
+                                )
+                                .padding(.top, 4)
+                            }
                         }
                         // Same inset as the progress track so the CTA grounds itself
                         // in the same content column as the card and track above it.
@@ -144,12 +158,18 @@ struct HomeReturnView: View {
 
     // MARK: - Completed actions
 
-    // Follow (placeholder — no real follow backend yet) + Share Journey
-    // (reuses the same artifact preview wired up from ChapterCompleteView's
-    // finished screen) + the inset/padding the active-state CTA column uses.
+    // Notify (next week) + Share Journey (reuses the same artifact preview
+    // wired up from ChapterCompleteView's finished screen) + the inset/
+    // padding the active-state CTA column uses.
     private var completedActions: some View {
         VStack(spacing: 14) {
-            PrimaryActionButton(title: "+ Follow \(firstName)", action: {})
+            NotifyMeButton(
+                style: .primary(background: .textPrimary),
+                label: "Notify me about next week",
+                date: Calendar.current.date(byAdding: .day, value: 7, to: weekStartDate) ?? weekStartDate,
+                notificationTitle: "Laya",
+                notificationBody: "Your next journey is ready."
+            )
             SecondaryActionButton(title: "Share Journey", icon: Image(systemName: "square.and.arrow.up")) {
                 showSharePreview = true
             }
