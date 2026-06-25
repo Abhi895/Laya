@@ -76,10 +76,10 @@ private final class MockProgressStore {
 struct MockAssignmentService: AssignmentServing {
     func fetchCurrentAssignment(for userId: String) async throws -> AssignmentPackage {
         let weekStart = WeeklyAssignment.currentWeekStartDate()
-        let index = await MockProgressStore.shared.forcedRotationIndex ?? mockRotationIndex(for: weekStart)
+        let index = MockProgressStore.shared.forcedRotationIndex ?? mockRotationIndex(for: weekStart)
         let content = mockRotation[index]
 
-        let forceAllUnlocked = await MockProgressStore.shared.forceAllUnlocked
+        let forceAllUnlocked = MockProgressStore.shared.forceAllUnlocked
         let effectiveWeekStart = forceAllUnlocked
             ? Calendar.current.date(byAdding: .day, value: -7, to: weekStart) ?? weekStart
             : weekStart
@@ -97,7 +97,7 @@ struct MockAssignmentService: AssignmentServing {
                 completedAt: nil
             )
         )
-        assignment.progress = await MockProgressStore.shared.progress(for: assignmentId, fallback: assignment.progress)
+        assignment.progress = MockProgressStore.shared.progress(for: assignmentId, fallback: assignment.progress)
         return AssignmentPackage(
             assignment: assignment,
             journey: content.journey,
@@ -106,7 +106,7 @@ struct MockAssignmentService: AssignmentServing {
     }
 
     func updateProgress(_ progress: JourneyProgress, assignmentId: String) async throws {
-        await MockProgressStore.shared.set(progress, for: assignmentId)
+        MockProgressStore.shared.set(progress, for: assignmentId)
     }
 
     func completeChapter(index: Int, assignmentId: String) async throws {
