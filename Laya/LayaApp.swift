@@ -14,6 +14,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     FirebaseApp.configure()
     LayaFontRegistration.registerAll()
+    // Wake the Taptic Engine before the first real interaction, so the very
+    // first button tap doesn't eat the cold-start latency on its own.
+    Haptics.warmUp()
 
     return true
   }
