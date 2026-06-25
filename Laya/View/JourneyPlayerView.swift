@@ -149,6 +149,7 @@ struct JourneyPlayerView: View {
     private var closeButton: some View {
         Button {
             guard !videoDetached else { return }
+            Haptics.tap()
             // Cut audio and detach the video layer before handing off to
             // ContentView's slide-down animation. This prevents the AVPlayerLayer
             // from rendering during the exit (it renders on a separate hardware
@@ -377,7 +378,7 @@ private struct CircleButton<Icon: View>: View {
             }
             .frame(width: 44, height: 44)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 }
 

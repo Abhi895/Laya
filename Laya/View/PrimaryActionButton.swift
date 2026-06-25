@@ -23,7 +23,6 @@ struct PrimaryActionButton: View {
     var icon: Image? = nil
     let action: () -> Void
 
-    //TODO: add transient haptic
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -45,15 +44,14 @@ struct PrimaryActionButton: View {
             .background(Capsule().fill(background))
         }
         // Tactile press: the whole capsule dips and dims, springing back on
-        // release. Centralised here so Begin and Continue feel identical.
+        // release, felt as well as seen via PressableButtonStyle's haptic.
         .buttonStyle(PressableButtonStyle())
-        // TODO: fire a transient haptic (e.g. .sensoryFeedback(.impact, ...) or a
-        // UIImpactFeedbackGenerator) on press so the dip is felt as well as seen.
     }
 }
 
-// Shrinks and dims the label while pressed, springing back on release.
-// Shared with SecondaryActionButton so the two CTAs feel identical to the touch.
+// Shrinks and dims the label while pressed, springing back on release, with a
+// light haptic on press-down. Shared with SecondaryActionButton and
+// CircleButton so every button in the app feels identical to the touch.
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -61,6 +59,9 @@ struct PressableButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(.spring(response: 0.3, dampingFraction: 0.6),
                        value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed { Haptics.tap() }
+            }
     }
 }
 

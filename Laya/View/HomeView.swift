@@ -288,8 +288,6 @@ struct HomeView: View {
 // MARK: - Reveal card
 
 private struct RevealCard: View {
-    
-    //TODO: add haptics
 
     let width: CGFloat
     // The revealed artist — its identity fades onto the card after the hold.
@@ -447,6 +445,7 @@ private struct RevealCard: View {
             .onChanged { _ in
                 guard !isHolding, !isRevealed else { return }
 
+                Haptics.tap()
                 isHolding = true
                 holdToken += 1
                 holdStart = Date()
@@ -493,6 +492,7 @@ private struct RevealCard: View {
     private func completeReveal() {
         guard isHolding, !isRevealed else { return }
         isHolding = false
+        Haptics.success()
 
         // Drives the ring/prompt clear and the parent's header/footer transition
         // plus the waterfall (the parent observes isRevealed).

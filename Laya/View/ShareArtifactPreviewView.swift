@@ -72,7 +72,7 @@ struct ShareArtifactPreviewView: View {
     private var closeButton: some View {
         HStack {
             Spacer()
-            Button(action: onDismiss) {
+            Button(action: { Haptics.tap(); onDismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.cream)

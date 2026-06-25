@@ -239,7 +239,7 @@ struct ChapterCompleteView: View {
                     Spacer().frame(height: 20)
 
                     // Back home text link — lands last, after the CTA above it.
-                    Button(action: onBackHome) {
+                    Button(action: { Haptics.tap(); onBackHome() }) {
                         Text("Back home")
                             .font(.layaBody(14, weight: .regular))
                             .foregroundStyle(.cream.opacity(0.3))
@@ -347,7 +347,7 @@ struct ChapterCompleteView: View {
     }
 
     private var backHomeButton: some View {
-        Button(action: onBackHome) {
+        Button(action: { Haptics.tap(); onBackHome() }) {
             Text("Back home")
                 .font(.layaBody(14, weight: .regular))
                 .foregroundStyle(.ink.opacity(0.45))
