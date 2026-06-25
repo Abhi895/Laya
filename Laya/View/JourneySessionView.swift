@@ -252,7 +252,7 @@ struct JourneySessionView: View {
 
     private func load() async {
         do {
-            let package = try await service.fetchCurrentAssignment(for: "user-mock")
+            let package = try await service.fetchCurrentAssignment(for: DeviceIdentity.userId)
             artist = package.artist
             chapters = package.journey.chapters.sorted { $0.index < $1.index }
             weekStartDate = package.assignment.weekStartDate

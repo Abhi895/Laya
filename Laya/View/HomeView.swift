@@ -35,7 +35,7 @@ struct HomeView: View {
     // The artist is hidden on this screen — we only use the (blurred) image.
     @State private var artist: Artist?
     // First chapter of the journey — passed to the chapter intro on Begin.
-    @State private var firstChapter: Chapter = .mockBackground
+    @State private var firstChapter: Chapter = .placeholder
     // Lifted out of the card so the surrounding text can recede during the hold.
     @State private var holdProgress: CGFloat = 0
     // Latched true once the hold completes and the artist is revealed.
@@ -267,7 +267,7 @@ struct HomeView: View {
 
     private func load() async {
         do {
-            let package = try await service.fetchCurrentAssignment(for: "user-mock")
+            let package = try await service.fetchCurrentAssignment(for: DeviceIdentity.userId)
             artist = package.artist
             if let chapter = package.journey.chapters.first {
                 firstChapter = chapter
@@ -587,7 +587,9 @@ private struct Diamond: Shape {
     }
 }
 
+#if DEBUG
 #Preview {
     HomeView()
 }
+#endif
 

@@ -173,7 +173,7 @@ struct HomeReturnView: View {
                 // last chapter — one debug Skip away from the real finished
                 // screen / share artifact.
                 Button(action: {
-                    MockAssignmentService.skipToFinished()
+                    LocalAssignmentService.skipToFinished()
                     Task { await load() }
                 }) {
                     Image(systemName: "forward.end.fill")
@@ -185,26 +185,10 @@ struct HomeReturnView: View {
                 .accessibilityLabel("Debug: skip to finished")
                 .padding(.trailing, 6)
 
-                // Advances the forced rotation override to the next mock
-                // artist's week, so it can be previewed immediately instead
-                // of waiting for a real Monday rollover.
-                Button(action: {
-                    MockAssignmentService.cycleForcedArtist()
-                    Task { await load() }
-                }) {
-                    Image(systemName: "person.crop.circle.badge.exclamationmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.ink.opacity(0.6))
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(.ink.opacity(0.08)))
-                }
-                .accessibilityLabel("Debug: next artist")
-                .padding(.trailing, 6)
-
                 Button(action: {
                     hasBegunJourney = false
                     hasCompletedOnboarding = false
-                    MockAssignmentService.resetProgress()
+                    LocalAssignmentService.resetProgress()
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 14, weight: .semibold))
@@ -318,7 +302,7 @@ struct HomeReturnView: View {
 
     private func load() async {
         do {
-            let package = try await service.fetchCurrentAssignment(for: "user-mock")
+            let package = try await service.fetchCurrentAssignment(for: DeviceIdentity.userId)
             artist = package.artist
             chapters = package.journey.chapters.sorted { $0.index < $1.index }
             weekStartDate = package.assignment.weekStartDate

@@ -1,0 +1,90 @@
+{
+  "artist": {
+    "id": "artist-tayo-james",
+    "name": "Tayo James",
+    "city": "London",
+    "genre": "R&B / Soul",
+    "bio": "I grew up in London, making music from my bedroom. People say I sound like Brent Faiyaz — I'll take it.",
+    "quote": "These stems are the messy parts of my brain. Keep them safe.",
+    "imageName": "artistCard",
+    "spotifyArtistId": null
+  },
+  "journey": {
+    "id": "journey-tayo-james",
+    "artistId": "artist-tayo-james",
+    "chapters": [
+      {
+        "id": "chapter-background",
+        "index": 0,
+        "title": "Background",
+        "subtitle": "Where Tayo began.",
+        "unlockOffsetDays": 0,
+        "videos": [
+          {
+            "id": "video-bg-1",
+            "localFilename": "portrait_sample.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "interview",
+            "title": "Growing up",
+            "spotifyTrackId": null
+          },
+          {
+            "id": "video-bg-2",
+            "localFilename": null,
+            "remoteURL": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+            "posterRemoteURL": null,
+            "kind": "bts",
+            "title": "In the studio",
+            "spotifyTrackId": null
+          }
+        ]
+      },
+      {
+        "id": "chapter-music",
+        "index": 1,
+        "title": "Music",
+        "subtitle": "The sound that defines him.",
+        "unlockOffsetDays": 2,
+        "videos": [
+          {
+            "id": "video-music-1",
+            "localFilename": "portrait_sample.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "musicVideo",
+            "title": "Know it",
+            "spotifyTrackId": "spotify-track-123"
+          },
+          {
+            "id": "video-music-2",
+            "localFilename": null,
+            "remoteURL": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+            "posterRemoteURL": null,
+            "kind": "live",
+            "title": "Heart of Darkness",
+            "spotifyTrackId": "spotify-track-456"
+          }
+        ]
+      },
+      {
+        "id": "chapter-goals",
+        "index": 2,
+        "title": "Goals",
+        "subtitle": "Where he's headed.",
+        "unlockOffsetDays": 5,
+        "videos": [
+          {
+            "id": "video-goals-1",
+            "localFilename": null,
+            "remoteURL": "https://media.w3.org/2010/05/sintel/trailer.mp4",
+            "posterRemoteURL": null,
+            "kind": "interview",
+            "title": "Making it big",
+            "spotifyTrackId": null
+          }
+        ]
+      }
+    ]
+  }
+}

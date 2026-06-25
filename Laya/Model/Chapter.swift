@@ -17,6 +17,16 @@ struct Chapter: Codable, Identifiable {
 }
 
 extension Chapter {
+    /// A valid-but-empty stand-in for "nothing loaded yet" — used as the
+    /// only safe default `@State` value outside of DEBUG, where the real
+    /// mock chapters (`Chapter.mockBackground` etc.) don't exist. Always
+    /// overwritten by the real fetched chapter before it could ever be
+    /// shown to a user.
+    static let placeholder = Chapter(
+        id: "chapter-placeholder", index: 0, title: "", subtitle: "",
+        unlockOffsetDays: 0, videos: []
+    )
+
     /// 0…1 — how far through this chapter's videos the given watched set reaches.
     /// Drives the progress bar's fractional fill.
     func fractionWatched(_ watched: Set<String>) -> Double {

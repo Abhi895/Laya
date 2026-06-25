@@ -24,12 +24,18 @@ struct ContentView: View {
     // Chapter to open the session on — updated either by HomeReturnView (when
     // the user taps Continue) or by the session's dismiss callback (when a
     // session ends), both reading from the same underlying progress.
-    @State private var pendingChapter: Chapter = .mockBackground
+    @State private var pendingChapter: Chapter = .placeholder
     @State private var isResume = false
     // Bumped each time we present a new session, giving JourneySessionView a
     // fresh identity. This prevents SwiftUI reversing an in-progress removal
     // animation when the user taps Continue before the spring finishes settling.
     @State private var sessionKey = UUID()
+
+    // The one real (non-debug) AssignmentServing implementation — available
+    // in every build configuration, unlike MockAssignmentService. Wiring it
+    // explicitly here (rather than relying on each view's DEBUG-only
+    // default initializer) is what makes a Release build actually work.
+    private let assignmentService = LocalAssignmentService()
 
     var body: some View {
         ZStack {
@@ -41,6 +47,7 @@ struct ContentView: View {
                 .transition(.opacity)
             } else if hasBegunJourney {
                 HomeReturnView(
+                    service: assignmentService,
                     isSessionActive: showSession,
                     onContinue: { chapter, resume in
                         // HomeReturnView holds the real watched-progress data, so it's
@@ -58,6 +65,7 @@ struct ContentView: View {
                 // so the HomeView → HomeReturnView swap behind it is invisible and
                 // the Begin button's press animation isn't cut short by a view swap.
                 HomeView(
+                    service: assignmentService,
                     onBegin: { chapter in
                         pendingChapter = chapter
                         isResume = false
@@ -77,6 +85,7 @@ struct ContentView: View {
                 JourneySessionView(
                     initialChapter: pendingChapter,
                     isResume: isResume,
+                    service: assignmentService,
                     onFinished: { chapter, resume in
                         // Store where the user left off so the next Continue tap
                         // starts on the right chapter.
