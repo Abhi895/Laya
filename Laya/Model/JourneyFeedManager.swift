@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import Observation
+import UIKit
 
 /// Owns the AVPlayer pool for a single chapter's horizontal video feed.
 ///
@@ -37,6 +38,10 @@ final class JourneyFeedManager {
     /// clip's asset finishes loading. Used by the view to compute time-based
     /// chapter progress (elapsed / total) at a constant fill rate.
     private(set) var durations: [Int: Double] = [:]
+    /// Frame-zero thumbnail for each clip, keyed by index — the real poster,
+    /// generated locally so it always matches the clip it sits under (unlike
+    /// a generic artist photo, which reads as a mismatch flash on cut).
+    private(set) var thumbnails: [Int: UIImage] = [:]
     /// Elapsed chapter time divided by total chapter duration — moves at a
     /// constant rate regardless of individual clip lengths. Falls back to
     /// clip-count fraction while durations are still loading.
@@ -71,6 +76,15 @@ final class JourneyFeedManager {
     @ObservationIgnored private var videos: [JourneyVideo] = []
     @ObservationIgnored private(set) var currentIndex = 0
     @ObservationIgnored private var started = false
+    /// Gates the *first* clip's playback (audio + frame advance) separately from
+    /// preloading. The chapter fades in over a slow crossfade owned by the parent
+    /// view — preloading during that fade is desirable (assets are ready the
+    /// moment it lands), but starting playback then is not: audio ignores the
+    /// SwiftUI opacity animation entirely, so sound would start while the screen
+    /// is still fading in. Set true via `allowPlayback()` once the caller's
+    /// transition has actually finished. Mid-chapter paging (`setCurrent`) is
+    /// unaffected — the user can't page a view that isn't visible yet.
+    @ObservationIgnored private var canPlay = false
 
     /// Observed (not `@ObservationIgnored`): when a clip's player is created
     /// asynchronously, the assignment into this dict is what invalidates the
@@ -80,6 +94,8 @@ final class JourneyFeedManager {
     @ObservationIgnored private var statusObservations: [Int: NSKeyValueObservation] = [:]
     @ObservationIgnored private var endObservers: [Int: NSObjectProtocol] = [:]
     @ObservationIgnored private var loadTasks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private var thumbnailTasks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private var fadeTasks: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private var timeObserver: Any?
 
     // MARK: - Lifecycle
@@ -96,6 +112,18 @@ final class JourneyFeedManager {
 
     func player(at index: Int) -> AVPlayer? { players[index] }
 
+    /// Signals that the chapter is actually visible now — releases the first
+    /// clip to start playing if it was already preloaded and waiting.
+    func allowPlayback() {
+        guard !canPlay else { return }
+        canPlay = true
+        guard let player = players[currentIndex], !isPaused else { return }
+        fadeIn(index: currentIndex)
+        if timeObserver == nil {
+            installTimeObserver(on: player, index: currentIndex)
+        }
+    }
+
     /// Make `index` the active clip: pause the others, restart this one from the
     /// top, and play. Safe to call before the player exists (it'll auto-play once
     /// it's ready).
@@ -104,19 +132,67 @@ final class JourneyFeedManager {
         // Remove the old periodic observer before installing a new one.
         if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
         timeObserver = nil
+        let previousIndex = currentIndex
         // Index must be set BEFORE playbackFraction so the observation that fires
         // on playbackFraction = 0 sees the new index — preventing a one-frame
         // overshoot on the progress bar at clip boundaries.
         currentIndex = index
         playbackFraction = 0
         isPaused = false
-        for (i, player) in players where i != index { player.pause() }
+        // Only the outgoing clip was actually making sound — it gets a fade-out.
+        // Everything else is already silent, so a hard pause is a no-op for them.
+        for (i, player) in players where i != index && i != previousIndex {
+            player.pause()
+        }
+        if previousIndex != index {
+            fadeOutAndPause(index: previousIndex)
+        }
         if let player = players[index] {
             player.seek(to: .zero)
-            player.play()
+            fadeIn(index: index)
             installTimeObserver(on: player, index: index)
         }
         onVideoReached?(videos[index])
+    }
+
+    /// Ramps volume 0→1 over ~180ms and starts playback immediately (the video
+    /// cut stays instant — only the audio is softened, which is what actually
+    /// reads as "abrupt" at a clip boundary).
+    private func fadeIn(index: Int) {
+        guard let player = players[index] else { return }
+        fadeTasks[index]?.cancel()
+        player.volume = 0
+        player.play()
+        fadeTasks[index] = Task { [weak self] in
+            let steps = 6
+            for step in 1...steps {
+                if Task.isCancelled { return }
+                player.volume = Float(step) / Float(steps)
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            guard !Task.isCancelled else { return }
+            self?.fadeTasks[index] = nil
+        }
+    }
+
+    /// Ramps volume to 0 over ~180ms, then pauses and resets volume to 1 so the
+    /// player is ready to fade in cleanly next time it becomes current.
+    private func fadeOutAndPause(index: Int) {
+        guard let player = players[index] else { return }
+        fadeTasks[index]?.cancel()
+        let startVolume = player.volume
+        fadeTasks[index] = Task { [weak self] in
+            let steps = 6
+            for step in 1...steps {
+                if Task.isCancelled { return }
+                player.volume = startVolume * (1 - Float(step) / Float(steps))
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            guard !Task.isCancelled else { return }
+            player.pause()
+            player.volume = 1
+            self?.fadeTasks[index] = nil
+        }
     }
 
     private func installTimeObserver(on player: AVPlayer, index: Int) {
@@ -142,6 +218,8 @@ final class JourneyFeedManager {
     }
 
     func pauseAll() {
+        fadeTasks.values.forEach { $0.cancel() }
+        fadeTasks.removeAll()
         for player in players.values { player.pause() }
     }
 
@@ -149,10 +227,14 @@ final class JourneyFeedManager {
         if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
         timeObserver = nil
         loadTasks.values.forEach { $0.cancel() }
+        thumbnailTasks.values.forEach { $0.cancel() }
+        fadeTasks.values.forEach { $0.cancel() }
         statusObservations.values.forEach { $0.invalidate() }
         endObservers.values.forEach { NotificationCenter.default.removeObserver($0) }
         players.values.forEach { $0.pause() }
         loadTasks.removeAll()
+        thumbnailTasks.removeAll()
+        fadeTasks.removeAll()
         statusObservations.removeAll()
         endObservers.removeAll()
         players.removeAll()
@@ -188,15 +270,32 @@ final class JourneyFeedManager {
             self.observeReady(item: item, index: index)
             self.observeEnd(item: item, index: index)
             self.loadTasks[index] = nil
+            self.generateThumbnail(asset: asset, index: index)
             // If the user is already sitting on this page, start it the moment
             // it lands. Also install the time observer — setCurrent ran before
             // the player existed so it couldn't install it then.
-            if index == self.currentIndex && !self.isPaused {
-                player.play()
+            if index == self.currentIndex && !self.isPaused && self.canPlay {
+                self.fadeIn(index: index)
                 if self.timeObserver == nil {
                     self.installTimeObserver(on: player, index: index)
                 }
             }
+        }
+    }
+
+    /// Grabs the clip's frame-zero image so `VideoCell` has a poster that
+    /// actually matches the clip underneath, instead of falling back to a
+    /// generic artist photo.
+    private func generateThumbnail(asset: AVURLAsset, index: Int) {
+        thumbnailTasks[index] = Task { [weak self] in
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceBefore = .zero
+            generator.requestedTimeToleranceAfter = .zero
+            guard let result = try? await generator.image(at: .zero) else { return }
+            guard let self, !Task.isCancelled else { return }
+            self.thumbnails[index] = UIImage(cgImage: result.image)
+            self.thumbnailTasks[index] = nil
         }
     }
 
@@ -206,8 +305,8 @@ final class JourneyFeedManager {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.readyIndices.insert(index)
-                if index == self.currentIndex && !self.isPaused {
-                    self.players[index]?.play()
+                if index == self.currentIndex && !self.isPaused && self.canPlay {
+                    self.fadeIn(index: index)
                 }
             }
         }

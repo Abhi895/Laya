@@ -22,6 +22,11 @@ struct JourneyPlayerView: View {
     let artist: Artist?
     /// Which clip to open on (resume pointer; 0 for a fresh chapter).
     let startIndex: Int
+    /// True once the caller's entrance crossfade has actually finished — flips
+    /// playback on. Starts false even on a fresh mount so the first clip's audio
+    /// and frame advance wait for the screen to actually be visible, not just
+    /// present in the view tree. See `JourneyFeedManager.allowPlayback()`.
+    let isFullyPresented: Bool
 
     /// Leave the journey entirely (the ✕ button).
     var onDismiss: () -> Void
@@ -69,6 +74,9 @@ struct JourneyPlayerView: View {
         }
         .onAppear { setup() }
         .onDisappear { manager.teardown(); chromeTask?.cancel() }
+        .onChange(of: isFullyPresented) { _, newValue in
+            if newValue { manager.allowPlayback() }
+        }
         .onChange(of: scrollID) { oldValue, newValue in
             if let newValue {
                 if newValue >= chapter.videos.count {
@@ -286,6 +294,7 @@ struct JourneyPlayerView: View {
         manager.onVideoReached = onVideoReached
         manager.onVideoCompleted = onVideoCompleted
         manager.start(videos: chapter.videos, startIndex: startIndex)
+        if isFullyPresented { manager.allowPlayback() }
         scrollID = startIndex
         // Start the initial hide timer directly — onChange fires immediately after
         // and would reset a revealChrome() call, making the effective window only
@@ -363,12 +372,27 @@ private struct VideoCell: View {
         ZStack {
             Color.ink
 
-            // Poster placeholder beneath the video. Falls back to the artist
-            // image, then ink, when no poster URL resolves.
-            AsyncImage(url: video.posterURL ?? artist?.imageURL) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Color.ink
+            // Poster placeholder beneath the video: the clip's own frame-zero
+            // thumbnail once the manager has generated it (matches what's about
+            // to play, so a cut never flashes unrelated content), falling back
+            // to a remote poster, then the artist image, then ink while it's
+            // still generating. Gated on videoDetached too — once the video layer
+            // is pulled (chapter-complete or dismiss), showing the poster in its
+            // place would just swap one flash (the video's last frame) for another
+            // (its thumbnail); falling back to plain ink here blends into both this
+            // view's own base and the ink completion screen it's fading toward.
+            if videoDetached {
+                EmptyView()
+            } else if let thumbnail = manager.thumbnails[index] {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                AsyncImage(url: video.posterURL ?? artist?.imageURL) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.ink
+                }
             }
 
             // Mount the layer as soon as the player exists. AVPlayerLayer is
@@ -480,6 +504,7 @@ private struct CircleButton<Icon: View>: View {
         chapter: .mockBackground,
         artist: .mock,
         startIndex: 0,
+        isFullyPresented: true,
         onDismiss: {},
         onChapterComplete: {},
         onVideoReached: { _ in },

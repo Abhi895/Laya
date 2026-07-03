@@ -32,11 +32,12 @@ struct OnboardingAuthView: View {
 
                     actions
                         .padding(.horizontal, 48)
-
+                    
                     terms
                         .padding(.horizontal, 28)
-                        .padding(.top, 56)
-                        .padding(.bottom, max(8, geo.safeAreaInsets.bottom + 6))
+                        .padding(.top, 60)
+                        .padding(.bottom, 10)
+        
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

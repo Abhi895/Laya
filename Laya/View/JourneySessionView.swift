@@ -32,6 +32,10 @@ struct JourneySessionView: View {
     @State private var phase: Phase = .intro
     @State private var currentChapter: Chapter
     @State private var introIsResume: Bool
+    /// True once the intro→player (or complete→player) crossfade has actually
+    /// finished — passed to JourneyPlayerView so it withholds playback until the
+    /// screen is really visible, not just mounted. See `enterDuration` below.
+    @State private var playerFullyVisible = false
 
     // Loaded once — needed for next-chapter routing and lock computation.
     @State private var chapters: [Chapter] = []
@@ -102,6 +106,7 @@ struct JourneySessionView: View {
                     chapter: currentChapter,
                     artist: artist,
                     startIndex: resumeStartIndex,
+                    isFullyPresented: playerFullyVisible,
                     onDismiss: dismiss,
                     onChapterComplete: exitPlayer,
                     onVideoReached: markResumePoint,
@@ -148,7 +153,12 @@ struct JourneySessionView: View {
     // Intro → player: slow easeInOut so the dark feed envelops the cream card,
     // giving the sensation of stepping into something immersive.
     private func enterPlayer() {
-        withAnimation(.easeInOut(duration: enterDuration)) { phase = .player }
+        playerFullyVisible = false
+        withAnimation(.easeInOut(duration: enterDuration)) {
+            phase = .player
+        } completion: {
+            playerFullyVisible = true
+        }
     }
 
     // Player → complete: snappier — the chapter is done and the payoff arrives.
@@ -187,9 +197,14 @@ struct JourneySessionView: View {
         guard let next = completeSnapshot?.nextChapter else { onFinished(currentChapter, false); return }
         currentChapter = next
         introIsResume = false
+        playerFullyVisible = false
         // The unlocked completion screen already showed the next chapter's numeral/
         // title/subtitle — it acts as the intro. Same entering feel as intro→player.
-        withAnimation(.easeInOut(duration: enterDuration)) { phase = .player }
+        withAnimation(.easeInOut(duration: enterDuration)) {
+            phase = .player
+        } completion: {
+            playerFullyVisible = true
+        }
     }
 
     /// Computes the right (chapter, isResume) for the home screen and fires onFinished.
