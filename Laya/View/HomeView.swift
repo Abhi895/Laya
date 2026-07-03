@@ -113,7 +113,7 @@ struct HomeView: View {
                         // Post-reveal bio + Begin — fades in last in the waterfall.
                         postRevealFooter
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 16)
                     .padding(.bottom, 54)
                 }
                 .padding(.horizontal, 32)
@@ -164,7 +164,7 @@ struct HomeView: View {
     private var footer: some View {
         VStack(spacing: 30) {
             Text("Your next favourite artist\nis waiting to be discovered.")
-                .font(.layaDisplay(20))
+                .font(.layaBody(20, weight: .light))
                 .foregroundStyle(.ink.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
@@ -180,8 +180,8 @@ struct HomeView: View {
     private var postRevealFooter: some View {
         VStack(spacing: 0) {
             Text(artist?.bio ?? "")
-                .font(.layaDisplay(18))
-                .foregroundStyle(.ink.opacity(0.65))
+                .font(.layaBody(16, weight: .light))
+                .foregroundStyle(.ink.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)

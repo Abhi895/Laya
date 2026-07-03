@@ -12,13 +12,10 @@ import SwiftUI
 /// Matches the launch mockup: quiet cream canvas, centred Laya mark, Spotify as
 /// the primary route, guest as the secondary route, and a small legal footer.
 struct OnboardingAuthView: View {
-    var onSpotify: () -> Void = {}
-    var onGuest: () -> Void = {}
+    var onDiscover: () -> Void = {}
 
-    init(onSpotify: @escaping () -> Void = {},
-         onGuest: @escaping () -> Void = {}) {
-        self.onSpotify = onSpotify
-        self.onGuest = onGuest
+    init(onDiscover: @escaping () -> Void = {}) {
+        self.onDiscover = onDiscover
         LayaFontRegistration.registerAll()
     }
 
@@ -38,7 +35,7 @@ struct OnboardingAuthView: View {
 
                     terms
                         .padding(.horizontal, 28)
-                        .padding(.top, 36)
+                        .padding(.top, 56)
                         .padding(.bottom, max(8, geo.safeAreaInsets.bottom + 6))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,63 +66,7 @@ struct OnboardingAuthView: View {
     }
 
     private var actions: some View {
-        VStack(spacing: 22) {
-            Button(action: onSpotify) {
-                HStack(spacing: 14) {
-                    Image("spotify")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(.cream)
-                        .frame(width: 30, height: 30)
-
-                    Text("Continue with Spotify")
-                        .font(.layaBody(17, weight: .regular))
-                        .foregroundStyle(.cream)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 60)
-                .background(Capsule().fill(Color.textPrimary))
-                .shadow(color: .ink.opacity(0.34), radius: 12, x: 0, y: 8)
-            }
-            .buttonStyle(OnboardingPressStyle())
-
-            divider
-
-            Button(action: onGuest) {
-                Text("Continue as guest")
-                    .font(.layaBody(17, weight: .regular))
-                    .foregroundStyle(.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 60)
-                    .background(
-                        Capsule()
-                            .stroke(Color.textPrimary, lineWidth: 1.3)
-                    )
-                    .shadow(color: .ink.opacity(0.16), radius: 9, x: 0, y: 5)
-            }
-            .buttonStyle(OnboardingPressStyle())
-        }
-    }
-
-    private var divider: some View {
-        HStack(spacing: 22) {
-            Rectangle()
-                .fill(Color.ink.opacity(0.48))
-                .frame(height: 1)
-
-            Text("or")
-                .font(.layaBody(14, weight: .light))
-                .foregroundStyle(.ink.opacity(0.5))
-
-            Rectangle()
-                .fill(Color.ink.opacity(0.48))
-                .frame(height: 1)
-        }
+        PrimaryActionButton(title: "Discover", action: onDiscover)
     }
 
     private var terms: some View {
@@ -174,10 +115,10 @@ struct GrowingLogoMark: View {
             // Low damping means each one overshoots noticeably past full
             // size before settling, giving a pronounced little spring/bounce
             // at the end.
-            withAnimation(.spring(response: 1.4, dampingFraction: 0.66).delay(0.7)) {
+            withAnimation(.spring(response: 1.4, dampingFraction: 0.66).delay(0.5)) {
                 stemGrown = true
             }
-            withAnimation(.spring(response: 1.3, dampingFraction: 0.66).delay(1.0)) {
+            withAnimation(.spring(response: 1.3, dampingFraction: 0.66).delay(0.8)) {
                 leafGrown = true
             }
         }
@@ -242,18 +183,6 @@ private struct LogoLeafShape: Shape {
 }
 #endif
 
-private struct OnboardingPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(configuration.isPressed ? 0.86 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.7),
-                       value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed { Haptics.tap() }
-            }
-    }
-}
 
 #if DEBUG
 #Preview {

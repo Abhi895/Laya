@@ -31,20 +31,27 @@ enum NotificationPermission {
     /// previously scheduled one — only one is ever relevant at a time (next
     /// chapter, or next week's journey), so a fixed identifier means
     /// re-scheduling naturally supersedes the last one rather than stacking.
-    static func scheduleNextDropReminder(at date: Date, title: String, body: String) {
+    /// Returns false if the date is in the past (nothing scheduled) or if the
+    /// OS rejects the request; true on success.
+    @discardableResult
+    static func scheduleNextDropReminder(at date: Date, title: String, body: String) async -> Bool {
+        guard date > Date() else { return false }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        let interval = max(60, date.timeIntervalSinceNow)
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute], from: date
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         let request = UNNotificationRequest(identifier: "laya.nextDrop", content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request)
+        return (try? await UNUserNotificationCenter.current().add(request)) != nil
     }
 
     /// The only way to change a *denied* decision is the Settings app —
     /// requestAuthorization silently no-ops once the user has already
     /// answered once.
+    @MainActor
     static func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)

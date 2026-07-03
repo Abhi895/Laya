@@ -36,7 +36,7 @@ struct JourneySessionView: View {
     // Loaded once — needed for next-chapter routing and lock computation.
     @State private var chapters: [Chapter] = []
     @State private var artist: Artist?
-    @State private var weekStartDate = Date()
+    @State private var weekStartDate = WeeklyAssignment.currentWeekStartDate()
     @State private var assignmentId = ""
     @State private var watchedVideoIds: Set<String> = []
     @State private var lastWatchedVideoId: String?
@@ -54,6 +54,7 @@ struct JourneySessionView: View {
         let nextChapter: Chapter?
         let isNextUnlocked: Bool
         let daysUntilUnlock: Int
+        let weekStartDate: Date
         let totalChapters: Int
         let isJourneyComplete: Bool
     }
@@ -121,11 +122,13 @@ struct JourneySessionView: View {
                     nextChapter: snap.nextChapter,
                     isNextUnlocked: snap.isNextUnlocked,
                     daysUntilUnlock: snap.daysUntilUnlock,
+                    weekStartDate: snap.weekStartDate,
                     artist: artist,
                     totalChapters: snap.totalChapters,
                     isJourneyComplete: snap.isJourneyComplete,
                     onContinue: goToNextChapter,
-                    onBackHome: dismiss
+                    onBackHome: dismiss,
+                    onSkipForDemo: demoSkipAction(for: snap)
                 )
                 .transition(.opacity)
                 .zIndex(2)
@@ -157,6 +160,7 @@ struct JourneySessionView: View {
             nextChapter: nextChapter,
             isNextUnlocked: isNextUnlocked,
             daysUntilUnlock: daysUntilNextUnlock,
+            weekStartDate: weekStartDate,
             totalChapters: chapters.count,
             // The single source of truth for "is the journey done" — see
             // Journey/[Chapter].isComplete. markWatched() already recorded
@@ -165,6 +169,18 @@ struct JourneySessionView: View {
             isJourneyComplete: chapters.isComplete(watchedVideoIds)
         )
         withAnimation(.easeInOut(duration: 0.9)) { phase = .complete }
+    }
+
+    private func demoSkipAction(for snap: CompleteSnapshot) -> (() -> Void)? {
+        guard !snap.isNextUnlocked, !snap.isJourneyComplete else { return nil }
+        return skipToLastChapterIntro
+    }
+
+    private func skipToLastChapterIntro() {
+        guard let lastChapter = chapters.last else { return }
+        currentChapter = lastChapter
+        introIsResume = false
+        withAnimation(.easeInOut(duration: 0.9)) { phase = .intro }
     }
 
     private func goToNextChapter() {

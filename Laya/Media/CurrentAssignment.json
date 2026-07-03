@@ -1,42 +1,44 @@
 {
   "artist": {
-    "id": "artist-tayo-james",
-    "name": "Tayo James",
+    "id": "artist-kin",
+    "name": "kin",
     "city": "London",
-    "genre": "R&B / Soul",
-    "bio": "I grew up in London, making music from my bedroom. People say I sound like Brent Faiyaz — I'll take it.",
-    "quote": "These stems are the messy parts of my brain. Keep them safe.",
-    "imageName": "artistCard",
+    "genre": "Alernative",
+    "bio": "Two voices out of London, writing songs that sit somewhere between R&B and indie — built on the small, real moments between the big ones.",
+    "quote": "We're not trying to sound like anyone else. We're just trying to sound like us.",
+    "imageName": "kinArtistCard",
     "spotifyArtistId": null
   },
   "journey": {
-    "id": "journey-tayo-james",
-    "artistId": "artist-tayo-james",
+    "id": "journey-kin",
+    "artistId": "artist-kin",
     "chapters": [
       {
         "id": "chapter-background",
         "index": 0,
         "title": "Background",
-        "subtitle": "Where Tayo began.",
+        "subtitle": "Where kin began.",
         "unlockOffsetDays": 0,
         "videos": [
           {
             "id": "video-bg-1",
-            "localFilename": "portrait_sample.mp4",
+            "localFilename": "Kin_Background_1.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "interview",
-            "title": "Growing up",
-            "spotifyTrackId": null
+            "kind": null,
+            "title": "Who we are",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
           },
           {
             "id": "video-bg-2",
-            "localFilename": null,
-            "remoteURL": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+            "localFilename": "Kin_Background_2.mp4",
+            "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "bts",
-            "title": "In the studio",
-            "spotifyTrackId": null
+            "kind": null,
+            "title": "Meet my dog",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
           }
         ]
       },
@@ -44,26 +46,58 @@
         "id": "chapter-music",
         "index": 1,
         "title": "Music",
-        "subtitle": "The sound that defines him.",
-        "unlockOffsetDays": 2,
+        "subtitle": "The sound that defines them.",
+        "unlockOffsetDays": 0,
         "videos": [
           {
             "id": "video-music-1",
-            "localFilename": "portrait_sample.mp4",
+            "localFilename": "Kin_Music_1.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "musicVideo",
-            "title": "Know it",
-            "spotifyTrackId": "spotify-track-123"
+            "title": "shibuya",
+            "spotifyTrackId": "1Cw8gSzcpNfTTTMQiQxcE1",
+            "secondaryArtist": null
           },
           {
             "id": "video-music-2",
-            "localFilename": null,
-            "remoteURL": "https://media.w3.org/2010/05/bunny/trailer.mp4",
+            "localFilename": "Kin_Music_2.mp4",
+            "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "live",
-            "title": "Heart of Darkness",
-            "spotifyTrackId": "spotify-track-456"
+            "kind": "bts",
+            "title": "kin",
+            "spotifyTrackId": "0QfwdYeZSKPF4njp2H0hZ2",
+            "secondaryArtist": null
+          },
+          {
+            "id": "video-music-3",
+            "localFilename": "Kin_Music_3.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "musicVideo",
+            "title": "giovana",
+            "spotifyTrackId": "24euHPmRZBVUSl2BtAbTW2",
+            "secondaryArtist": "feat. Nippa"
+          },
+          {
+            "id": "video-music-4",
+            "localFilename": "Kin_Music_4.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "bts",
+            "title": "giovana",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
+          },
+          {
+            "id": "video-music-5",
+            "localFilename": "Kin_Music_5.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "bts",
+            "title": "shibuya (behind the scenes)",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
           }
         ]
       },
@@ -71,17 +105,18 @@
         "id": "chapter-goals",
         "index": 2,
         "title": "Goals",
-        "subtitle": "Where he's headed.",
-        "unlockOffsetDays": 5,
+        "subtitle": "Where they're headed.",
+        "unlockOffsetDays": 2,
         "videos": [
           {
             "id": "video-goals-1",
-            "localFilename": null,
-            "remoteURL": "https://media.w3.org/2010/05/sintel/trailer.mp4",
+            "localFilename": "Kin_Goals_1.mp4",
+            "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "interview",
-            "title": "Making it big",
-            "spotifyTrackId": null
+            "kind": null,
+            "title": "Looking ahead",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
           }
         ]
       }

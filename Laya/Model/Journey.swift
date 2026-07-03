@@ -112,14 +112,14 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .interview,
             title: "Growing up",
-            spotifyTrackId: nil        ),
+            spotifyTrackId: nil, secondaryArtist: nil        ),
         JourneyVideo(
             id: "video-bg-2",
             videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
             posterURL: nil,
             kind: .bts,
             title: "In the studio",
-            spotifyTrackId: nil        )
+            spotifyTrackId: nil, secondaryArtist: nil        )
     ]
 
     static let mockMusicVideos: [JourneyVideo] = [
@@ -130,7 +130,8 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .musicVideo,
             title: "Know it",
-            spotifyTrackId: "spotify-track-123"
+            spotifyTrackId: "spotify-track-123",
+            secondaryArtist: nil
         ),
         JourneyVideo(
             id: "video-music-2",
@@ -138,7 +139,8 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .live,
             title: "Heart of Darkness",
-            spotifyTrackId: "spotify-track-456"
+            spotifyTrackId: "spotify-track-456",
+            secondaryArtist: nil
         )
     ]
 
@@ -149,7 +151,7 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .interview,
             title: "Making it big",
-            spotifyTrackId: nil        )
+            spotifyTrackId: nil, secondaryArtist: nil        )
     ]
 
     // Bubba's journey reuses the same bundled/sample sources as Tayo's —
@@ -162,14 +164,14 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .interview,
             title: "Growing up",
-            spotifyTrackId: nil        ),
+            spotifyTrackId: nil, secondaryArtist: nil        ),
         JourneyVideo(
             id: "video-bubba-bg-2",
             videoURL: URL(string: "https://media.w3.org/2010/05/bunny/trailer.mp4")!,
             posterURL: nil,
             kind: .bts,
             title: "In the studio",
-            spotifyTrackId: nil        )
+            spotifyTrackId: nil, secondaryArtist: nil        )
     ]
 
     static let mockBubbaMusicVideos: [JourneyVideo] = [
@@ -179,7 +181,8 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .musicVideo,
             title: "Know it",
-            spotifyTrackId: "spotify-track-123"
+            spotifyTrackId: "spotify-track-123",
+            secondaryArtist: nil
         ),
         JourneyVideo(
             id: "video-bubba-music-2",
@@ -187,7 +190,8 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .live,
             title: "Heart of Darkness",
-            spotifyTrackId: "spotify-track-456"
+            spotifyTrackId: "spotify-track-456",
+            secondaryArtist: nil
         )
     ]
 
@@ -198,7 +202,7 @@ extension JourneyVideo {
             posterURL: nil,
             kind: .interview,
             title: "Making it big",
-            spotifyTrackId: nil        )
+            spotifyTrackId: nil, secondaryArtist: nil        )
     ]
 }
 #endif

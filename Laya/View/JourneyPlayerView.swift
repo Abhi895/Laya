@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// The chapter's video feed: a horizontally paging stack of the chapter's clips.
 ///
@@ -38,19 +39,74 @@ struct JourneyPlayerView: View {
     /// hierarchy before the slide-down exit animation, preventing any bleed-through
     /// since AVPlayerLayer renders on a separate hardware surface.
     @State private var videoDetached = false
-
+    /// Controls the fadeable chrome layer (everything except the ✕).
+    @State private var showChrome = true
+    @State private var chromeTask: Task<Void, Never>?
+    
+    //TODO: Wire up share button
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.ink.ignoresSafeArea()
             feed.ignoresSafeArea()
             // Decorative only — must never intercept the horizontal paging drag.
             scrim.ignoresSafeArea().allowsHitTesting(false)
-            content
+            chrome
+                .opacity(showChrome ? 1 : 0)
+                .allowsHitTesting(showChrome)
+            // Progress bar persists when chrome fades but dims — still anchors
+            // position in the chapter without competing with the video.
+            VStack(spacing: 0) {
+                ProgressBar(progress: manager.chapterProgressFraction)
+                    .frame(height: 2)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 12)
+                Spacer(minLength: 0)
+            }
+            .opacity(showChrome ? 1 : 0.35)
+            .animation(.easeOut(duration: 0.5), value: showChrome)
+            .allowsHitTesting(false)
         }
         .onAppear { setup() }
-        .onDisappear { manager.teardown() }
-        .onChange(of: scrollID) { _, newValue in
-            if let newValue { manager.setCurrent(index: newValue) }
+        .onDisappear { manager.teardown(); chromeTask?.cancel() }
+        .onChange(of: scrollID) { oldValue, newValue in
+            if let newValue {
+                if newValue >= chapter.videos.count {
+                    // User swiped past the last clip — same outcome as it playing to its end.
+                    if let last = chapter.videos.last { onVideoCompleted(last) }
+                    completeChapter()
+                } else {
+                    manager.setCurrent(index: newValue)
+                    if oldValue != nil { revealChrome() }
+                }
+            }
+        }
+    }
+    
+    // Shows chrome briefly then fades — used on clip change and after resume.
+    // Does not hide if the player is paused when the timer fires.
+    private func revealChrome() {
+        chromeTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) { showChrome = true }
+        chromeTask = Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled, !manager.isPaused else { return }
+            withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
+        }
+    }
+
+    // Single tap: toggle pause. Pausing snaps chrome in instantly (no animation)
+    // so the UI responds at the same speed as the user's intent. Resuming uses
+    // revealChrome so there's a 3-second window to see what's playing before
+    // the chrome fades back out.
+    private func handleTap(index: Int) {
+        let willPause = !manager.isPaused
+        manager.togglePlay(index: index)
+        if willPause {
+            chromeTask?.cancel()
+            showChrome = true   // instant snap — no withAnimation wrapper
+        } else {
+            revealChrome()
         }
     }
 
@@ -61,10 +117,16 @@ struct JourneyPlayerView: View {
             LazyHStack(spacing: 0) {
                 ForEach(Array(chapter.videos.enumerated()), id: \.element.id) { index, video in
                     VideoCell(index: index, video: video, artist: artist,
-                              manager: manager, videoDetached: videoDetached)
+                              manager: manager, videoDetached: videoDetached,
+                              onTap: { handleTap(index: index) })
                         .containerRelativeFrame(.horizontal)
                         .id(index)
                 }
+                // Phantom page — swiping here triggers chapter complete, so the
+                // user doesn't have to wait for the last clip to finish playing.
+                Color.clear
+                    .containerRelativeFrame(.horizontal)
+                    .id(chapter.videos.count)
             }
             .scrollTargetLayout()
         }
@@ -81,10 +143,10 @@ struct JourneyPlayerView: View {
     private var scrim: some View {
         LinearGradient(
             stops: [
-                .init(color: .black.opacity(0.75), location: 0.0),
-                .init(color: .clear, location: 0.22),
-                .init(color: .clear, location: 0.66),
-                .init(color: .black.opacity(0.55), location: 0.86),
+                .init(color: .black.opacity(0.85), location: 0.0),
+                .init(color: .black.opacity(0.5), location: 0.3),
+                .init(color: .clear, location: 0.6),
+                .init(color: .black.opacity(0.55), location: 0.7),
                 .init(color: .black.opacity(0.9), location: 1.0)
             ],
             startPoint: .top,
@@ -92,15 +154,13 @@ struct JourneyPlayerView: View {
         )
     }
 
-    private var content: some View {
+    private var chrome: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProgressBar(progress: progressFraction)
-                .frame(height: 2)
-                .padding(.horizontal, 22)
-                .padding(.bottom, 6)
-
-            HStack(alignment: .center) {
-                chapterEyebrow
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 5) {
+                    chapterEyebrow
+                    clipCounter
+                }
                 Spacer()
                 #if DEBUG
                 skipButton
@@ -108,6 +168,7 @@ struct JourneyPlayerView: View {
                 closeButton
             }
             .padding(.horizontal, 22)
+            .padding(.top, 8) // space below the always-visible progress bar (2pt bar + 6pt gap)
 
             Spacer(minLength: 0)
 
@@ -123,6 +184,17 @@ struct JourneyPlayerView: View {
         Text(chapterLabel)
             .font(.layaDisplay(18))
             .foregroundStyle(.cream)
+    }
+
+    // "1 of 5" — answers the information gap of a segmented bar without the
+    // gamification cost. Quiet enough to not compete with the chapter label.
+    private var clipCounter: some View {
+        Text("\(currentIndex + 1) of \(chapter.videos.count)")
+            .font(.layaBody(12, weight: .regular))
+            .tracking(1.5)
+            .textCase(.uppercase)
+            .foregroundStyle(.cream.opacity(0.45))
+            .animation(.easeInOut(duration: 0.25), value: currentIndex)
     }
 
     #if DEBUG
@@ -178,6 +250,14 @@ struct JourneyPlayerView: View {
                 Text(trackTitle)
                     .layaTitle(34)
                     .foregroundStyle(.cream)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.65)
+
+                if let secondary = currentVideo?.secondaryArtist {
+                    Text(secondary)
+                        .font(.layaBody(13, weight: .light))
+                        .foregroundStyle(.cream.opacity(0.55))
+                }
             }
             .id(currentIndex) // re-renders the labels as paging changes the clip
             .transition(.opacity)
@@ -185,8 +265,8 @@ struct JourneyPlayerView: View {
             Spacer(minLength: 16)
 
             VStack(spacing: 16) {
-                if currentVideo?.spotifyTrackId != nil {
-                    SpotifyButton {}
+                if let trackId = currentVideo?.spotifyTrackId {
+                    SpotifyButton { openSpotify(trackId: trackId) }
                 }
                 ShareButton {}
             }
@@ -207,6 +287,23 @@ struct JourneyPlayerView: View {
         manager.onVideoCompleted = onVideoCompleted
         manager.start(videos: chapter.videos, startIndex: startIndex)
         scrollID = startIndex
+        // Start the initial hide timer directly — onChange fires immediately after
+        // and would reset a revealChrome() call, making the effective window only
+        // ~2 s after the 0.9 s insertion animation. 5 s here gives ~4 s of clearly
+        // visible chrome once the view is fully opaque.
+        chromeTask = Task {
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled, !manager.isPaused else { return }
+            withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
+        }
+    }
+
+    private func openSpotify(trackId: String) {
+        let native = URL(string: "spotify:track:\(trackId)")!
+        let web = URL(string: "https://open.spotify.com/track/\(trackId)")!
+        UIApplication.shared.open(native) { success in
+            if !success { UIApplication.shared.open(web) }
+        }
     }
 
     private func completeChapter() {
@@ -221,35 +318,30 @@ struct JourneyPlayerView: View {
 
     // MARK: - Derived values
 
-    private var currentIndex: Int { scrollID ?? startIndex }
+    private var currentIndex: Int { min(scrollID ?? startIndex, max(0, chapter.videos.count - 1)) }
 
     private var currentVideo: JourneyVideo? {
         chapter.videos.indices.contains(currentIndex) ? chapter.videos[currentIndex] : nil
     }
 
     private var chapterLabel: String {
-        " \(romanNumeral(chapter.index + 1)) • \(chapter.title)"
+        "\(romanNumeral(chapter.index + 1)) • \(chapter.title)"
     }
 
     private var performanceLabel: String {
-        switch currentVideo?.kind {
+        switch currentVideo.flatMap(\.kind) {
         case .live:       return "Live Performance"
         case .musicVideo: return "Music Video"
         case .cover:      return "Cover"
         case .interview:  return "Interview"
         case .bts:        return "Behind the Scenes"
-        case .none:       return ""
+        case .qAndA:      return "Q&A"
+        case .none:       return chapter.title
         }
     }
 
     private var trackTitle: String { currentVideo?.title ?? "" }
 
-    // How far through *this chapter* the user is — clip position within the
-    // chapter, not the chapter's position in the journey.
-    private var progressFraction: Double {
-        guard !chapter.videos.isEmpty else { return 0 }
-        return Double(currentIndex + 1) / Double(chapter.videos.count)
-    }
 }
 
 // MARK: - Video cell
@@ -265,6 +357,7 @@ private struct VideoCell: View {
     /// the dismiss crossfade fires so the layer can't bleed through the UIView
     /// alpha animation (AVPlayerLayer renders on its own hardware surface).
     let videoDetached: Bool
+    let onTap: () -> Void
 
     var body: some View {
         ZStack {
@@ -298,13 +391,11 @@ private struct VideoCell: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .contentShape(Rectangle())
-        .onTapGesture { manager.togglePlay(index: index) }
+        .onTapGesture { onTap() }
     }
 }
 
 // MARK: - Progress bar
-
-//TODO: segment the progress bar and show completion within each video in the chapter in each segemnt
 
 private struct ProgressBar: View {
     let progress: Double // 0...1
@@ -319,7 +410,9 @@ private struct ProgressBar: View {
                     .frame(width: geo.size.width * max(0, min(progress, 1)))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: progress)
+        // 0.15s linear provides slight overlap between 0.1s timer updates,
+        // absorbing timer jitter without introducing perceptible lag.
+        .animation(.easeInOut(duration: 0.15), value: progress)
     }
 }
 

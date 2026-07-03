@@ -50,6 +50,18 @@ struct ShareArtifactPreviewView: View {
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 8)
+
+                // Gradient from the screen's ink background into the card's top
+                // edge — embeds the card rather than leaving it floating on flat ink.
+                LinearGradient(
+                    colors: [Color.ink, Color.ink.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 140)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             }
         }
         .task {

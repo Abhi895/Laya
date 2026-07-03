@@ -23,6 +23,9 @@ struct PrimaryActionButton: View {
     var icon: Image? = nil
     let action: () -> Void
 
+    @GestureState private var isGestureActive = false
+    @State private var pressed = false
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -43,9 +46,28 @@ struct PrimaryActionButton: View {
             .padding(.vertical, 16)
             .background(Capsule().fill(background))
         }
-        // Tactile press: the whole capsule dips and dims, springing back on
-        // release, felt as well as seen via PressableButtonStyle's haptic.
-        .buttonStyle(PressableButtonStyle())
+        // .plain so SwiftUI doesn't add its own press treatment on top of ours.
+        // DragGesture(minimumDistance: 0) fires on first touch — no gesture
+        // disambiguation delay. Applied at the Button level (not inside the
+        // button's content) so .simultaneousGesture allows the tap action
+        // to fire alongside the press-state tracking.
+        .buttonStyle(.plain)
+        .scaleEffect(pressed ? 0.96 : 1)
+        .opacity(pressed ? 0.85 : 1)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .updating($isGestureActive) { _, state, _ in state = true }
+        )
+        .onChange(of: isGestureActive) { _, active in
+            if active {
+                pressed = true
+                Haptics.tap()
+            } else {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    pressed = false
+                }
+            }
+        }
     }
 }
 
@@ -54,13 +76,27 @@ struct PrimaryActionButton: View {
 // CircleButton so every button in the app feels identical to the touch.
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        PressableButtonLabel(configuration: configuration)
+    }
+}
+
+private struct PressableButtonLabel: View {
+    let configuration: ButtonStyleConfiguration
+    @State private var pressed = false
+
+    var body: some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6),
-                       value: configuration.isPressed)
+            .scaleEffect(pressed ? 0.96 : 1)
+            .opacity(pressed ? 0.85 : 1)
             .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed { Haptics.tap() }
+                if isPressed {
+                    pressed = true
+                    Haptics.tap()
+                } else {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        pressed = false
+                    }
+                }
             }
     }
 }

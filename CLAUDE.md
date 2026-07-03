@@ -1,19 +1,29 @@
 # Laya — Claude Code context
 
 ## What Laya is
-Laya is a weekly music discovery iOS app built around one emerging artist per week,
-across a 3-chapter video journey: Background, Music, Goals. Chapters drip daily.
+One artist. One journey. Every week.
 
-For the artist: a chance to tell the story behind their sound — where they came from,
-what they make, what they're building toward — before the world catches up with them.
-For the listener: the feeling of being let in early. Discovering someone who matters,
-deeply, before they blow up. Less algorithm, more curation.
+Laya is a music discovery platform for intentional listening. Each week, one emerging
+artist is presented through a finite, curated sequence of 10–20 short-form videos
+across 3 chapters (Background, Music, Goals), drip-released daily. Listeners engage
+deeply with one artist at a time; artists get focused exposure to people who actually
+want to discover new music.
 
-The tone is warm, underground, curatorial. Not hype. Not corporate. The product
-should feel like a recommendation from someone with genuinely good taste.
+For listeners: "A calm, intentional way to discover emerging artists — one artist at
+a time — without the noise, pressure, or fatigue of infinite feeds."
+For artists: "A discovery platform built to convert attention into genuine fans, not
+just views."
 
-Extended context (screens, architecture, known issues, decisions) lives in the
-memory vault — Claude reads it automatically at session start.
+The listener is someone who treats music discovery as a hobby — puts friends onto new
+music, listens to full discographies, loves discovering artists before they blow up.
+The artist is in the early stages (debut album, local venues, small loyal fanbase),
+spending promo effort on TikToks that get minimal engagement, needing a low-effort
+high-reward platform where repurposing existing content actually converts.
+
+The tone is warm, underground, curatorial. Not hype. Not corporate.
+
+Extended context (screens, architecture, known issues, artist roster, product decisions)
+lives in the memory vault — Claude reads it automatically at session start.
 
 ---
 

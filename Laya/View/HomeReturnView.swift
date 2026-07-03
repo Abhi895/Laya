@@ -40,6 +40,9 @@ struct HomeReturnView: View {
     // here rather than guessed by the caller, since this view is the one
     // holding the real watched-progress data.
     private let onContinue: (Chapter, Bool) -> Void
+    
+    //TODO: Fix teaser and user retention mechanic during wait
+    //TODO: Refine video completion mechanics and chapter progress bars
 
     @State private var showSharePreview = false
 
@@ -85,7 +88,7 @@ struct HomeReturnView: View {
                     // Tight gap so the progress track reads as belonging to the card.
                     Spacer().frame(height: 35)
 
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 18) {
                         ChapterProgressTrack(chapters: chapters,
                                              watchedVideoIds: watchedVideoIds,
                                              weekStartDate: weekStartDate,
@@ -94,6 +97,8 @@ struct HomeReturnView: View {
                             Text("All chapters completed.")
                                 .font(.layaBody(13, weight: .light))
                                 .foregroundStyle(.ink.opacity(0.45))
+                        } else if !isCurrentChapterUnlocked {
+                            nextChapterTeaser
                         }
                     }
                     .padding(.horizontal, 24)
@@ -225,6 +230,31 @@ struct HomeReturnView: View {
     }
     #endif
 
+    // MARK: - Next chapter teaser
+
+    // Appears between the chapter track and the CTA column when the current
+    // chapter isn't unlocked yet. Gives the user something to look forward to
+    // rather than leaving the wait state as a dead end.
+    @ViewBuilder private var nextChapterTeaser: some View {
+        if let chapter = currentChapter {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CHAPTER \(romanNumeral(chapter.index + 1)) · DROPS \(chapter.unlockDayName(weekStartDate: weekStartDate).uppercased())")
+                    .font(.layaBody(11, weight: .medium))
+                    .tracking(2)
+                    .foregroundStyle(.copper)
+
+                Text(chapter.title)
+                    .font(.layaDisplay(26))
+                    .foregroundStyle(.ink.opacity(0.65))
+
+                Text(chapter.subtitle)
+                    .font(.layaBody(14, weight: .light))
+                    .foregroundStyle(.ink.opacity(0.35))
+                    .padding(.top, 1)
+            }
+        }
+    }
+
     // MARK: - Header
 
     // The celebration itself belongs entirely to ChapterCompleteView's
@@ -233,7 +263,7 @@ struct HomeReturnView: View {
     // it just calmly reflects status, same as the in-progress greeting does.
     private var header: some View {
         VStack(spacing: 6) {
-            Text("Welcome.")
+            Text("Welcome")
                 .font(.layaDisplay(38))
                 .foregroundStyle(.ink)
 

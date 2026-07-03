@@ -30,6 +30,31 @@ final class JourneyFeedManager {
     /// True while the current clip is user-paused (tap to toggle), so the play
     /// glyph can show.
     private(set) var isPaused = false
+    /// 0→1 fraction of the current clip's playback time — updated ~10×/sec by a
+    /// periodic time observer and used to drive smooth progress bar fill.
+    private(set) var playbackFraction: Double = 0
+    /// Duration in seconds for each clip, keyed by index. Populated as each
+    /// clip's asset finishes loading. Used by the view to compute time-based
+    /// chapter progress (elapsed / total) at a constant fill rate.
+    private(set) var durations: [Int: Double] = [:]
+    /// Elapsed chapter time divided by total chapter duration — moves at a
+    /// constant rate regardless of individual clip lengths. Falls back to
+    /// clip-count fraction while durations are still loading.
+    /// Re-evaluates only when `playbackFraction` or `durations` change;
+    /// `currentIndex` is @ObservationIgnored but is always set before
+    /// `playbackFraction` in setCurrent, so both are in sync on each eval.
+    var chapterProgressFraction: Double {
+        guard !videos.isEmpty else { return 0 }
+        let n = videos.count
+        guard durations.count == n else {
+            return Double(currentIndex) / Double(n)
+        }
+        let total = (0..<n).compactMap { durations[$0] }.reduce(0, +)
+        guard total > 0 else { return Double(currentIndex) / Double(n) }
+        let completed = (0..<currentIndex).compactMap { durations[$0] }.reduce(0.0, +)
+        let current = (durations[currentIndex] ?? 0) * playbackFraction
+        return (completed + current) / total
+    }
 
     /// Page the feed to this index (fired when a clip plays to its end and a
     /// next clip exists). The view animates `scrollPosition` to it.
@@ -55,6 +80,7 @@ final class JourneyFeedManager {
     @ObservationIgnored private var statusObservations: [Int: NSKeyValueObservation] = [:]
     @ObservationIgnored private var endObservers: [Int: NSObjectProtocol] = [:]
     @ObservationIgnored private var loadTasks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private var timeObserver: Any?
 
     // MARK: - Lifecycle
 
@@ -75,14 +101,32 @@ final class JourneyFeedManager {
     /// it's ready).
     func setCurrent(index: Int) {
         guard videos.indices.contains(index) else { return }
+        // Remove the old periodic observer before installing a new one.
+        if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
+        timeObserver = nil
+        // Index must be set BEFORE playbackFraction so the observation that fires
+        // on playbackFraction = 0 sees the new index — preventing a one-frame
+        // overshoot on the progress bar at clip boundaries.
         currentIndex = index
+        playbackFraction = 0
         isPaused = false
         for (i, player) in players where i != index { player.pause() }
         if let player = players[index] {
             player.seek(to: .zero)
             player.play()
+            installTimeObserver(on: player, index: index)
         }
         onVideoReached?(videos[index])
+    }
+
+    private func installTimeObserver(on player: AVPlayer, index: Int) {
+        let interval = CMTime(seconds: 0.1, preferredTimescale: 600)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
+            guard let self, self.currentIndex == index,
+                  let item = player.currentItem,
+                  item.duration.isNumeric, item.duration.seconds > 0 else { return }
+            self.playbackFraction = min(time.seconds / item.duration.seconds, 1)
+        }
     }
 
     /// Tap-to-toggle on the current clip.
@@ -102,6 +146,8 @@ final class JourneyFeedManager {
     }
 
     func teardown() {
+        if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
+        timeObserver = nil
         loadTasks.values.forEach { $0.cancel() }
         statusObservations.values.forEach { $0.invalidate() }
         endObservers.values.forEach { NotificationCenter.default.removeObserver($0) }
@@ -127,8 +173,12 @@ final class JourneyFeedManager {
         loadTasks[index] = Task { [weak self] in
             let asset = AVURLAsset(url: url)
             _ = try? await asset.load(.isPlayable)
+            let rawDur = (try? await asset.load(.duration)) ?? .indefinite
             if Task.isCancelled { return }
             guard let self else { return }
+            if rawDur.isNumeric && rawDur.seconds > 0 {
+                self.durations[index] = rawDur.seconds
+            }
             let item = AVPlayerItem(asset: asset)
             let player = AVPlayer(playerItem: item)
             // We advance manually on end-of-item, so don't let the player loop or
@@ -139,9 +189,13 @@ final class JourneyFeedManager {
             self.observeEnd(item: item, index: index)
             self.loadTasks[index] = nil
             // If the user is already sitting on this page, start it the moment
-            // it lands.
+            // it lands. Also install the time observer — setCurrent ran before
+            // the player existed so it couldn't install it then.
             if index == self.currentIndex && !self.isPaused {
                 player.play()
+                if self.timeObserver == nil {
+                    self.installTimeObserver(on: player, index: index)
+                }
             }
         }
     }

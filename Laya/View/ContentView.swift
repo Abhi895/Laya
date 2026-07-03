@@ -41,8 +41,7 @@ struct ContentView: View {
         ZStack {
             if !hasCompletedOnboarding {
                 OnboardingAuthView(
-                    onSpotify: completeOnboarding,
-                    onGuest: completeOnboarding
+                    onDiscover: completeOnboarding
                 )
                 .transition(.opacity)
             } else if hasBegunJourney {
@@ -104,6 +103,7 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.75), value: hasCompletedOnboarding)
         .animation(.easeInOut(duration: 0.75), value: hasBegunJourney)
+        .onTapGesture(count: 3) { resetToOnboarding() }
     }
 
     // Spotify/guest both land here: the user has authenticated, so move off
@@ -117,6 +117,7 @@ struct ContentView: View {
         showSession = false
         hasBegunJourney = false
         hasCompletedOnboarding = false
+        assignmentService.resetAllProgress()
     }
 
     private func presentIntro() {

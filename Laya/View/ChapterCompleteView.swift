@@ -25,6 +25,9 @@ struct ChapterCompleteView: View {
     let isNextUnlocked: Bool
     /// Whole days until `nextChapter` unlocks (only meaningful when locked).
     let daysUntilUnlock: Int
+    /// The Monday that started this week's journey — used to compute the
+    /// exact unlock timestamp and next-week date for notification scheduling.
+    let weekStartDate: Date
     let artist: Artist?
     /// Total chapters in the journey — used for the progress dot row on the locked screen.
     var totalChapters: Int = 3
@@ -40,6 +43,8 @@ struct ChapterCompleteView: View {
     var onContinue: () -> Void
     /// Leave the journey, back to Home.
     var onBackHome: () -> Void
+    /// Demo only: jump straight to the journey-complete screen.
+    var onSkipForDemo: (() -> Void)? = nil
 
     // Cascade beats — matched to ChapterIntroView's feel.
     // Unlocked:  5-beat — head → numeral → title → subtitle → actions.
@@ -71,6 +76,12 @@ struct ChapterCompleteView: View {
             (variant == .locked ? Color.ink : Color.cream).ignoresSafeArea()
             layoutContent
         }
+        // Flattens the entire visual content — including the ignoresSafeArea color —
+        // into one compositing layer so the parent's .transition(.opacity) fades the
+        // full screen uniformly. Without this, the ignoresSafeArea extensions render
+        // outside the view's nominal frame and can appear cream at the bottom during
+        // the locked (ink) → chapter-intro (cream) crossfade.
+        .compositingGroup()
         .task { await runCascade() }
         .fullScreenCover(isPresented: $showSharePreview) {
             if let artist {
@@ -193,7 +204,7 @@ struct ChapterCompleteView: View {
                         .opacity(showMid ? 1 : 0)
                         .offset(y: showMid ? 0 : 12)
 
-                    Spacer().frame(height: 10)
+                    Spacer().frame(height: 6)
 
                     // Next chapter subtitle
                     Text(nextChapter?.subtitle ?? "")
@@ -236,7 +247,7 @@ struct ChapterCompleteView: View {
                     NotifyMeButton(
                         style: .primary(background: .copper),
                         label: "Notify me when it drops",
-                        date: Calendar.current.date(byAdding: .day, value: daysUntilUnlock, to: Date()) ?? Date(),
+                        date: nextChapter?.unlockDate(weekStartDate: weekStartDate) ?? Date(),
                         notificationTitle: "Laya",
                         notificationBody: "\(firstName)'s next chapter just dropped."
                     )
@@ -254,6 +265,18 @@ struct ChapterCompleteView: View {
                     }
                     .buttonStyle(HapticOnlyButtonStyle())
                     .opacity(showBackHomeLink ? 1 : 0)
+
+                    if let skip = onSkipForDemo {
+                        Button(action: skip) {
+                            Text("Skip for demo")
+                                .font(.layaBody(11, weight: .regular))
+                                .foregroundStyle(.cream.opacity(0.18))
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .buttonStyle(HapticOnlyButtonStyle())
+                        .padding(.top, 6)
+                        .opacity(showBackHomeLink ? 1 : 0)
+                    }
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 34 + geo.safeAreaInsets.bottom)
@@ -264,15 +287,17 @@ struct ChapterCompleteView: View {
         } else {
             // Finished: celebration close — headline, sharp ArtistCard,
             // Follow + Share Journey CTAs, quiet back-home link.
+            // Top-anchored: head + card sit at a fixed distance from the top
+            // regardless of whether NotifyMeButton is visible below.
             VStack(spacing: 0) {
-                Spacer(minLength: 0)
                 head
-                Spacer().frame(height: 28)
+                Spacer().frame(height: 58)
                 finishedMiddle
                 Spacer(minLength: 0)
                 finishedActions
             }
             .padding(.horizontal, 32)
+            .padding(.top, 52)
             .padding(.bottom, 44)
         }
     }
@@ -334,7 +359,7 @@ struct ChapterCompleteView: View {
             NotifyMeButton(
                 style: .primary(background: .textPrimary),
                 label: "Notify me about next week",
-                date: Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date(),
+                date: Calendar.current.date(byAdding: .day, value: 7, to: weekStartDate) ?? weekStartDate,
                 notificationTitle: "Laya",
                 notificationBody: "Your next journey is ready."
             )
@@ -377,13 +402,11 @@ struct ChapterCompleteView: View {
             withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + lockedBeatGap)) {
                 showMid = true
             }
-            // Beat 3: progress dots + Follow CTA
+            // Beat 3: progress dots + Notify CTA + Back home link — all land
+            // together so there's no window where Notify is tappable but the
+            // only exit home isn't visible yet.
             withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + 2 * lockedBeatGap)) {
                 showActions = true
-            }
-            // Back home link only starts once the CTA above it has fully
-            // landed — the last thing to arrive, not overlapping with it.
-            withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart + 2 * lockedBeatGap + lockedBeatFade + backHomeLinkGap)) {
                 showBackHomeLink = true
             }
             return
@@ -417,10 +440,6 @@ struct ChapterCompleteView: View {
             }
             withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 2 * beatGap)) {
                 showActions = true
-            }
-            // Back home link only starts once the CTAs above it have fully
-            // landed — the last thing to arrive, not overlapping with them.
-            withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + 2 * beatGap + beatFade + backHomeLinkGap)) {
                 showBackHomeLink = true
             }
         }
@@ -459,15 +478,8 @@ struct ChapterCompleteView: View {
         return "Chapter \(romanNumeral(next.index + 1)) • Drops \(unlockDayName)"
     }
 
-    /// Day name derived from `daysUntilUnlock`, e.g. "Wednesday".
     private var unlockDayName: String {
-        guard daysUntilUnlock > 0 else { return "soon" }
-        let target = Calendar.current.date(
-            byAdding: .day, value: daysUntilUnlock, to: Date()
-        ) ?? Date()
-        let fmt = DateFormatter()
-        fmt.dateFormat = "EEEE"
-        return fmt.string(from: target)
+        nextChapter?.unlockDayName(weekStartDate: weekStartDate) ?? "soon"
     }
 
     private var firstName: String {
@@ -483,6 +495,7 @@ struct ChapterCompleteView: View {
         nextChapter: .mockMusic,
         isNextUnlocked: true,
         daysUntilUnlock: 0,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         onContinue: {},
         onBackHome: {}
@@ -495,6 +508,7 @@ struct ChapterCompleteView: View {
         nextChapter: .mockMusic,
         isNextUnlocked: false,
         daysUntilUnlock: 2,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         onContinue: {},
         onBackHome: {}
@@ -507,6 +521,7 @@ struct ChapterCompleteView: View {
         nextChapter: nil,
         isNextUnlocked: false,
         daysUntilUnlock: 0,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         isJourneyComplete: true,
         onContinue: {},

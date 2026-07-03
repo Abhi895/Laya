@@ -49,7 +49,6 @@ struct ChapterInfoBlock: View {
             Text(title)
                 .font(.layaDisplay(46))
                 .foregroundStyle(.ink)
-                .padding(.top, 4)
                 .opacity(showTitle ? 1 : 0)
                 .offset(y: showTitle ? 0 : 12)
 

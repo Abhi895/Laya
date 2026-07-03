@@ -17,6 +17,7 @@ struct JourneyShareArtifactView: View {
     // Live preview only — the share image itself must render one fixed,
     // calm frame, never a mid-pulse one, so this defaults to false and is
     // only switched on by the on-screen instance in ShareArtifactPreviewView.
+    
     var animated: Bool = false
 
     static let cardWidth: CGFloat = 360
@@ -55,11 +56,11 @@ struct JourneyShareArtifactView: View {
     // legible regardless of how light the photo happens to be at that spot.
     private var topScrim: some View {
         LinearGradient(
-            colors: [Color.ink.opacity(0.55), .clear],
+            colors: [Color.ink.opacity(0.9), .clear],
             startPoint: .top,
             endPoint: .bottom
         )
-        .frame(width: Self.cardWidth, height: 130, alignment: .top)
+        .frame(width: Self.cardWidth, height: 180, alignment: .top)
     }
 
     // MARK: - Photo + seamless fade

@@ -27,12 +27,13 @@ struct LocalAssignmentService: AssignmentServing {
         let journey = try manifest.journey.toModel()
 
         let assignmentId = "assignment-\(journey.id)"
-        let progress = await LocalProgressStore.shared.progress(for: assignmentId)
+        let progress =
+        LocalProgressStore.shared.progress(for: assignmentId)
         let assignment = WeeklyAssignment(
             id: assignmentId,
             userId: userId,
             journeyId: journey.id,
-            weekStartDate: WeeklyAssignment.currentWeekStartDate(),
+            weekStartDate: LocalProgressStore.shared.journeyStartDate(for: journey.id),
             assignedAt: Date(),
             progress: progress
         )
@@ -40,7 +41,11 @@ struct LocalAssignmentService: AssignmentServing {
     }
 
     func updateProgress(_ progress: JourneyProgress, assignmentId: String) async throws {
-        await LocalProgressStore.shared.set(progress, for: assignmentId)
+        LocalProgressStore.shared.set(progress, for: assignmentId)
+    }
+
+    @MainActor func resetAllProgress() {
+        LocalProgressStore.shared.reset()
     }
 
     func completeChapter(index: Int, assignmentId: String) async throws {
@@ -146,9 +151,10 @@ private struct JourneyVideoDTO: Codable {
     let localFilename: String?
     let remoteURL: String?
     let posterRemoteURL: String?
-    let kind: JourneyVideo.Kind
+    let kind: JourneyVideo.Kind?
     let title: String
     let spotifyTrackId: String?
+    let secondaryArtist: String?
 
     func toModel() throws -> JourneyVideo {
         let resolvedURL: URL
@@ -170,7 +176,8 @@ private struct JourneyVideoDTO: Codable {
             posterURL: posterRemoteURL.flatMap { URL(string: $0) },
             kind: kind,
             title: title,
-            spotifyTrackId: spotifyTrackId
+            spotifyTrackId: spotifyTrackId,
+            secondaryArtist: secondaryArtist
         )
     }
 }
@@ -208,6 +215,17 @@ private final class LocalProgressStore {
     func reset() {
         progress.removeAll()
         persist()
+        UserDefaults.standard.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("laya.journeyStart.") }
+            .forEach { UserDefaults.standard.removeObject(forKey: $0) }
+    }
+
+    func journeyStartDate(for journeyId: String) -> Date {
+        let key = "laya.journeyStart.\(journeyId)"
+        if let stored = UserDefaults.standard.object(forKey: key) as? Date { return stored }
+        let now = Date()
+        UserDefaults.standard.set(now, forKey: key)
+        return now
     }
 
     private func persist() {

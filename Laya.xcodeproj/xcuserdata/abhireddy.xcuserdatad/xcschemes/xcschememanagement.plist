@@ -9,6 +9,29 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>Promises (Playground).xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>E115B6222FE3224E00F98544</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>E115B62F2FE3225000F98544</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>E115B6392FE3225000F98544</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 	</dict>
 </dict>
 </plist>

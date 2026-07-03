@@ -30,20 +30,50 @@ struct NotifyMeButton: View {
     let notificationBody: String
 
     @State private var status: UNAuthorizationStatus?
+    @State private var isRequesting = false
+    // Set only when the user just granted permission this session (not when
+    // .task resolves an already-granted status). @State lifetime = this view
+    // instance, so it resets to false on every future appearance of the button.
+    @State private var justGranted = false
 
     var body: some View {
         Group {
-            switch status {
-            case .authorized, .provisional, .ephemeral:
+            if isGranted && justGranted {
+                // Transient confirmation — only visible in the session where
+                // the user actually tapped and granted. Disappears on next visit.
                 confirmation
-            case .denied:
-                settingsLink
-            default:
-                askButton
+            } else if isGranted {
+                EmptyView()
+            } else {
+                ZStack {
+                    askButton
+                        .opacity(isDefault ? 1 : 0)
+                    settingsLink
+                        .opacity(isDenied ? 1 : 0)
+                }
+                .animation(.easeOut(duration: 0.35), value: status)
             }
         }
         .task {
-            status = await NotificationPermission.currentStatus()
+            await refreshAndScheduleIfAuthorized()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await refreshAndScheduleIfAuthorized() }
+        }
+    }
+
+    private var isGranted: Bool {
+        status == .authorized || status == .provisional || status == .ephemeral
+    }
+    private var isDenied: Bool { status == .denied }
+    private var isDefault: Bool { !isGranted && !isDenied }
+
+    private func refreshAndScheduleIfAuthorized() async {
+        status = await NotificationPermission.currentStatus()
+        if status == .authorized || status == .provisional || status == .ephemeral {
+            await NotificationPermission.scheduleNextDropReminder(
+                at: date, title: notificationTitle, body: notificationBody
+            )
         }
     }
 
@@ -63,14 +93,16 @@ struct NotifyMeButton: View {
 
     private var settingsLink: some View {
         Button(action: NotificationPermission.openSettings) {
-            Text("Enable notifications in Settings")
-                .font(.layaBody(14, weight: .regular))
-                .foregroundStyle(tintColor.opacity(0.7))
-                .underline()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.right.circle.fill")
+                Text("Open Settings")
+            }
+            .font(.layaBody(15, weight: .medium))
+            .foregroundStyle(tintColor.opacity(0.6))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
-        .buttonStyle(HapticOnlyButtonStyle())
+        .buttonStyle(PressableButtonStyle())
     }
 
     private var confirmation: some View {
@@ -92,14 +124,18 @@ struct NotifyMeButton: View {
     }
 
     private func requestAndSchedule() {
+        guard !isRequesting else { return }
+        isRequesting = true
         Task {
             let granted = await NotificationPermission.request()
             if granted {
-                NotificationPermission.scheduleNextDropReminder(
+                await NotificationPermission.scheduleNextDropReminder(
                     at: date, title: notificationTitle, body: notificationBody
                 )
             }
             status = await NotificationPermission.currentStatus()
+            if granted { justGranted = true }
+            isRequesting = false
         }
     }
 }
