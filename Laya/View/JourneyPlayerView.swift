@@ -89,7 +89,7 @@ struct JourneyPlayerView: View {
         chromeTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) { showChrome = true }
         chromeTask = Task {
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled, !manager.isPaused else { return }
             withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
         }

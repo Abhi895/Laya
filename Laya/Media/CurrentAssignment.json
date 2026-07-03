@@ -3,8 +3,8 @@
     "id": "artist-kin",
     "name": "kin",
     "city": "London",
-    "genre": "Alernative",
-    "bio": "Two voices out of London, writing songs that sit somewhere between R&B and indie — built on the small, real moments between the big ones.",
+    "genre": "Alternative",
+    "bio": "Two voices out of London, writing songs with a unique sound — built on the small, real moments between the big ones.",
     "quote": "We're not trying to sound like anyone else. We're just trying to sound like us.",
     "imageName": "kinArtistCard",
     "spotifyArtistId": null
@@ -36,7 +36,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": null,
-            "title": "Meet my dog",
+            "title": "Meet Jack's dog",
             "spotifyTrackId": null,
             "secondaryArtist": null
           }
@@ -65,7 +65,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "bts",
-            "title": "kin",
+            "title": "recording our song 'kin'",
             "spotifyTrackId": "0QfwdYeZSKPF4njp2H0hZ2",
             "secondaryArtist": null
           },
@@ -85,7 +85,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "bts",
-            "title": "giovana",
+            "title": "making giovana",
             "spotifyTrackId": null,
             "secondaryArtist": null
           },
@@ -95,7 +95,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "bts",
-            "title": "shibuya (behind the scenes)",
+            "title": "shibuya photoshoot",
             "spotifyTrackId": null,
             "secondaryArtist": null
           }
