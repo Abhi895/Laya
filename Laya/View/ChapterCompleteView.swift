@@ -466,7 +466,7 @@ struct ChapterCompleteView: View {
         switch variant {
         case .unlocked: return ""
         case .locked:   return "Complete."
-        case .finished: return "You did it."
+        case .finished: return "That's \(artist?.name ?? "the artist")."
         }
     }
 
