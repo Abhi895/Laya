@@ -4,7 +4,7 @@
     "name": "kin",
     "city": "London",
     "genre": "Alternative",
-    "bio": "Two voices out of London, writing songs with a unique sound — built on the small, real moments between the big ones.",
+    "bio": "London-based duo, writing songs with a unique sound — built on the small, real moments between the big ones.",
     "quote": "We're not trying to sound like anyone else. We're just trying to sound like us.",
     "imageName": "kinArtistCard",
     "spotifyArtistId": null
@@ -17,7 +17,7 @@
         "id": "chapter-background",
         "index": 0,
         "title": "Background",
-        "subtitle": "Where kin began.",
+        "subtitle": "Who they are.",
         "unlockOffsetDays": 0,
         "videos": [
           {
@@ -26,7 +26,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": null,
-            "title": "Who we are",
+            "title": "Our story",
             "spotifyTrackId": null,
             "secondaryArtist": null
           },
