@@ -5,7 +5,7 @@
     "city": "London",
     "genre": "Alternative",
     "bio": "London-based duo, writing songs with a unique sound — built on the small, real moments between the big ones.",
-    "quote": "We're not trying to sound like anyone else. We're just trying to sound like us.",
+    "quote": "Thanks for spending time with us — it means a lot.",
     "imageName": "kinArtistCard",
     "spotifyArtistId": null
   },
@@ -54,9 +54,9 @@
             "localFilename": "Kin_Music_1.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "musicVideo",
-            "title": "shibuya",
-            "spotifyTrackId": "1Cw8gSzcpNfTTTMQiQxcE1",
+            "kind": "bts",
+            "title": "recording 'kin'",
+            "spotifyTrackId": "0QfwdYeZSKPF4njp2H0hZ2",
             "secondaryArtist": null
           },
           {
@@ -64,9 +64,9 @@
             "localFilename": "Kin_Music_2.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
-            "kind": "bts",
-            "title": "recording 'kin'",
-            "spotifyTrackId": "0QfwdYeZSKPF4njp2H0hZ2",
+            "kind": "musicVideo",
+            "title": "shibuya",
+            "spotifyTrackId": "1Cw8gSzcpNfTTTMQiQxcE1",
             "secondaryArtist": null
           },
           {
@@ -85,7 +85,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "bts",
-            "title": "making giovana",
+            "title": "shibuya on film",
             "spotifyTrackId": null,
             "secondaryArtist": null
           },
@@ -95,7 +95,7 @@
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "bts",
-            "title": "shibuya on film",
+            "title": "making giovana",
             "spotifyTrackId": null,
             "secondaryArtist": null
           }
