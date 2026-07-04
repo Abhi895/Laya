@@ -126,8 +126,11 @@ final class JourneyFeedManager {
 
     /// Make `index` the active clip: pause the others, restart this one from the
     /// top, and play. Safe to call before the player exists (it'll auto-play once
-    /// it's ready).
-    func setCurrent(index: Int) {
+    /// it's ready). Pass `autoplay: false` to seek/prep the clip without starting
+    /// it — used by the auto-advance ink-dip breath, which needs the clip ready
+    /// while still fully covered, and only calls `beginPlayback()` once the cover
+    /// has cleared.
+    func setCurrent(index: Int, autoplay: Bool = true) {
         guard videos.indices.contains(index) else { return }
         // Remove the old periodic observer before installing a new one.
         if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
@@ -149,10 +152,24 @@ final class JourneyFeedManager {
         }
         if let player = players[index] {
             player.seek(to: .zero)
-            fadeIn(index: index)
-            installTimeObserver(on: player, index: index)
+            if autoplay {
+                fadeIn(index: index)
+                installTimeObserver(on: player, index: index)
+            }
         }
         onVideoReached?(videos[index])
+    }
+
+    /// Starts playback of the already-current clip that was primed silently via
+    /// `setCurrent(index:autoplay:false)` — called once the ink-dip's cover has
+    /// cleared. Same prep/play split as `allowPlayback()`, applied per
+    /// intra-chapter transition instead of once at chapter entrance.
+    func beginPlayback() {
+        guard let player = players[currentIndex] else { return }
+        fadeIn(index: currentIndex)
+        if timeObserver == nil {
+            installTimeObserver(on: player, index: currentIndex)
+        }
     }
 
     /// Ramps volume 0→1 over ~180ms and starts playback immediately (the video
@@ -318,7 +335,9 @@ final class JourneyFeedManager {
             object: item,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.handleEnd(index: index) }
+            // Already on the main queue (queue: .main above) — no need for an
+            // extra Task hop, which just adds a needless suspension point.
+            self?.handleEnd(index: index)
         }
     }
 

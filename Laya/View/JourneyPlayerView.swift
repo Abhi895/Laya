@@ -47,7 +47,16 @@ struct JourneyPlayerView: View {
     /// Controls the fadeable chrome layer (everything except the ✕).
     @State private var showChrome = true
     @State private var chromeTask: Task<Void, Never>?
-    
+    /// Drives the ink-dip "breath" between auto-advanced clips (not manual
+    /// swipes) — see beginAutoAdvance(). 0 = clear, 1 = fully covered.
+    @State private var breathOpacity: Double = 0
+    @State private var isBreathing = false
+    @State private var breathTask: Task<Void, Never>?
+    /// Set right before the breath's own silent scrollID jump, so onChange(of:
+    /// scrollID) can tell that jump apart from a real manual swipe and skip
+    /// autoplay (beginAutoAdvance starts playback itself once the cover clears).
+    @State private var pendingAutoplayHoldIndex: Int?
+
     //TODO: Wire up share button
     
     var body: some View {
@@ -59,6 +68,13 @@ struct JourneyPlayerView: View {
             chrome
                 .opacity(showChrome ? 1 : 0)
                 .allowsHitTesting(showChrome)
+            // The auto-advance "breath" — covers clip content AND chrome so a
+            // finished clip never sits mid-swap with the next one's title/counter.
+            // Sits below the progress bar, which stays visible through everything.
+            Color.ink
+                .ignoresSafeArea()
+                .opacity(breathOpacity)
+                .allowsHitTesting(isBreathing)
             // Progress bar persists when chrome fades but dims — still anchors
             // position in the chapter without competing with the video.
             VStack(spacing: 0) {
@@ -73,7 +89,7 @@ struct JourneyPlayerView: View {
             .allowsHitTesting(false)
         }
         .onAppear { setup() }
-        .onDisappear { manager.teardown(); chromeTask?.cancel() }
+        .onDisappear { manager.teardown(); chromeTask?.cancel(); breathTask?.cancel() }
         .onChange(of: isFullyPresented) { _, newValue in
             if newValue { manager.allowPlayback() }
         }
@@ -84,20 +100,78 @@ struct JourneyPlayerView: View {
                     if let last = chapter.videos.last { onVideoCompleted(last) }
                     completeChapter()
                 } else {
-                    manager.setCurrent(index: newValue)
-                    if oldValue != nil { revealChrome() }
+                    // The breath's own silent prep-jump shouldn't autoplay, or reveal
+                    // chrome, here — beginAutoAdvance() starts playback and fades
+                    // chrome in itself once the cover clears, in sync with the ink.
+                    let isBreathJump = newValue == pendingAutoplayHoldIndex
+                    if isBreathJump { pendingAutoplayHoldIndex = nil }
+                    manager.setCurrent(index: newValue, autoplay: !isBreathJump)
+                    if oldValue != nil && !isBreathJump { revealChrome() }
                 }
             }
         }
     }
-    
+
+    // MARK: - Auto-advance breath
+
+    // Cover → hold → reveal, ~1.2s total, matching the chapter-entrance
+    // crossfade's own duration — confirmed by testing that the underlying
+    // withAnimation mechanism was never broken (the progress bar's dim and
+    // chrome's passive auto-hide both animate correctly), the earlier
+    // 0.22-0.4s durations were just too fast to read as a real fade. Reveal
+    // is set to 0.5s to match the app's own confirmed-working chrome
+    // auto-hide fade duration (scheduleChromeAutoHide, below) rather than a
+    // guess. Only auto-advance goes through this; manual swipes stay exactly
+    // as instant as before.
+    private let breathCover: Double = 0.6
+    private let breathHold: Double = 0.2
+    private let breathReveal: Double = 0.7
+
+    private func beginAutoAdvance(to next: Int) {
+        guard !isBreathing else { return }
+        isBreathing = true
+        chromeTask?.cancel()
+        breathTask = Task {
+            withAnimation(.easeInOut(duration: breathCover)) { breathOpacity = 1 }
+            try? await Task.sleep(for: .seconds(breathCover))
+            guard !Task.isCancelled else { isBreathing = false; return }
+
+            // Fully covered now — jump with no animation (imperceptible under
+            // the ink) and prep the next clip silently. Chrome stays hidden
+            // through the hold so its reveal can be synced to the ink lifting
+            // below, instead of fading in early and finishing invisibly
+            // underneath it (which is what made it feel like it "just appeared").
+            pendingAutoplayHoldIndex = next
+            scrollID = next
+            showChrome = false
+
+            try? await Task.sleep(for: .seconds(breathHold))
+            guard !Task.isCancelled else { isBreathing = false; return }
+
+            manager.beginPlayback()
+            // Same withAnimation call, same duration — chrome fades in exactly
+            // as the ink fades out, so the two read as one continuous reveal.
+            withAnimation(.easeInOut(duration: breathReveal)) {
+                breathOpacity = 0
+                showChrome = true
+            }
+            try? await Task.sleep(for: .seconds(breathReveal))
+            isBreathing = false
+            scheduleChromeAutoHide()
+        }
+    }
+
     // Shows chrome briefly then fades — used on clip change and after resume.
     // Does not hide if the player is paused when the timer fires.
     private func revealChrome() {
         chromeTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) { showChrome = true }
+        scheduleChromeAutoHide()
+    }
+
+    private func scheduleChromeAutoHide() {
         chromeTask = Task {
-            try? await Task.sleep(for: .seconds(6))
+            try? await Task.sleep(for: .seconds(7))
             guard !Task.isCancelled, !manager.isPaused else { return }
             withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
         }
@@ -109,12 +183,25 @@ struct JourneyPlayerView: View {
     // the chrome fades back out.
     private func handleTap(index: Int) {
         let willPause = !manager.isPaused
-        manager.togglePlay(index: index)
         if willPause {
+            withAnimation(.easeOut(duration: 0.2)) {
+                manager.togglePlay(index: index)
+            }
             chromeTask?.cancel()
             showChrome = true   // instant snap — no withAnimation wrapper
         } else {
-            revealChrome()
+            // Both mutations must land in the SAME withAnimation transaction.
+            // Calling this, then separately calling revealChrome() (which does
+            // its own withAnimation) right after, put two back-to-back
+            // transactions in the same SwiftUI update batch — only one actually
+            // drove the committed animation, so the play icon's fade-out
+            // (governed by the first transaction) silently lost its animation.
+            chromeTask?.cancel()
+            withAnimation(.easeOut(duration: 0.35)) {
+                manager.togglePlay(index: index)
+                showChrome = true
+            }
+            scheduleChromeAutoHide()
         }
     }
 
@@ -248,7 +335,7 @@ struct JourneyPlayerView: View {
 
     private var bottomBar: some View {
         HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text(performanceLabel)
                     .font(.layaBody(15, weight: .regular))
                     .tracking(2)
@@ -287,9 +374,7 @@ struct JourneyPlayerView: View {
     private func setup() {
         guard !wired else { return }
         wired = true
-        manager.onAdvanceRequest = { next in
-            withAnimation(.easeInOut(duration: 0.5)) { scrollID = next }
-        }
+        manager.onAdvanceRequest = { next in beginAutoAdvance(to: next) }
         manager.onChapterComplete = completeChapter
         manager.onVideoReached = onVideoReached
         manager.onVideoCompleted = onVideoCompleted
@@ -410,6 +495,7 @@ private struct VideoCell: View {
                     .font(.system(size: 50))
                     .foregroundStyle(.cream.opacity(0.7))
                     .shadow(color: .ink, radius: 12, y: 4)
+                    .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
