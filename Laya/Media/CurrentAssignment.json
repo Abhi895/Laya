@@ -22,21 +22,21 @@
         "videos": [
           {
             "id": "video-bg-1",
-            "localFilename": "Kin_Background_1.mp4",
+            "localFilename": "Kin_Background_Joelle.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": null,
-            "title": "Our story",
+            "title": "Meet Joelle",
             "spotifyTrackId": null,
             "secondaryArtist": null
           },
           {
-            "id": "video-bg-2",
-            "localFilename": "Kin_Background_2.mp4",
+            "id": "video-bg-3",
+            "localFilename": "Kin_Background_1.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": null,
-            "title": "Meet Jack's dog",
+            "title": "Meet Jack",
             "spotifyTrackId": null,
             "secondaryArtist": null
           }
@@ -70,6 +70,16 @@
             "secondaryArtist": null
           },
           {
+            "id": "video-music-4",
+            "localFilename": "Kin_Shibuya_BTS.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "bts",
+            "title": "shibuya on film",
+            "spotifyTrackId": null,
+            "secondaryArtist": null
+          },
+          {
             "id": "video-music-3",
             "localFilename": "Kin_Music_3.mp4",
             "remoteURL": null,
@@ -78,16 +88,6 @@
             "title": "giovana",
             "spotifyTrackId": "24euHPmRZBVUSl2BtAbTW2",
             "secondaryArtist": "feat. Nippa"
-          },
-          {
-            "id": "video-music-4",
-            "localFilename": "Kin_Music_4.mp4",
-            "remoteURL": null,
-            "posterRemoteURL": null,
-            "kind": "bts",
-            "title": "shibuya on film",
-            "spotifyTrackId": null,
-            "secondaryArtist": null
           },
           {
             "id": "video-music-5",
