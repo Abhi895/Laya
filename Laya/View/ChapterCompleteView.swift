@@ -36,9 +36,14 @@ struct ChapterCompleteView: View {
     /// Journey/[Chapter].isComplete) rather than inferred here from `nextChapter`.
     var isJourneyComplete: Bool = false
     /// Whether every clip in `completedChapter` was actually watched — vs. merely
-    /// reached via a phantom-page skip. Feeds `Variant.resolve` and the locked
-    /// screen's progress tally (`chaptersGenuinelyDone`).
+    /// reached via a phantom-page skip. Feeds `Variant.resolve`.
     let completedChapterFullyWatched: Bool
+    /// How many chapters in the whole journey have actually been fully
+    /// watched — computed by the caller (see `[Chapter].genuinelyCompletedCount`)
+    /// against the real watched-video set, not inferred here from
+    /// `completedChapter`'s own index, which can't see whether EARLIER
+    /// chapters were also only reached via a phantom-page skip.
+    var chaptersGenuinelyDone: Int = 0
 
     /// Advance to the next chapter's intro (unlocked path only).
     var onContinue: () -> Void
@@ -498,15 +503,6 @@ struct ChapterCompleteView: View {
 
     private var headlineSize: CGFloat { 44 }
 
-    /// The just-completed chapter only counts toward the locked screen's tally if
-    /// it was genuinely watched — reaching it via a phantom-page skip doesn't earn
-    /// it. Earlier chapters keep the existing "reached" semantics; this fix is
-    /// scoped to the chapter just completed, matching the narrow
-    /// completedChapterFullyWatched signal.
-    private var chaptersGenuinelyDone: Int {
-        completedChapterFullyWatched ? completedChapter.index + 1 : completedChapter.index
-    }
-
     /// "CHAPTER II • DROPS WEDNESDAY" — eyebrow on the dark locked screen.
     private var lockedNextEyebrow: String {
         guard let next = nextChapter else { return "" }
@@ -547,6 +543,7 @@ struct ChapterCompleteView: View {
         weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         completedChapterFullyWatched: true,
+        chaptersGenuinelyDone: 1,
         onContinue: {},
         onBackHome: {}
     )
@@ -561,6 +558,25 @@ struct ChapterCompleteView: View {
         weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         completedChapterFullyWatched: false,
+        chaptersGenuinelyDone: 0,
+        onContinue: {},
+        onBackHome: {}
+    )
+}
+
+#Preview("Locked next (two chapters skipped)") {
+    // Regression preview for the "1 of 3 instead of 0 of 3" bug: both this
+    // chapter and the one before it were phantom-page skipped, nothing
+    // genuinely watched at all.
+    ChapterCompleteView(
+        completedChapter: .mockMusic,
+        nextChapter: .mockGoals,
+        isNextUnlocked: false,
+        daysUntilUnlock: 2,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
+        artist: .mock,
+        completedChapterFullyWatched: false,
+        chaptersGenuinelyDone: 0,
         onContinue: {},
         onBackHome: {}
     )
@@ -576,6 +592,7 @@ struct ChapterCompleteView: View {
         artist: .mock,
         isJourneyComplete: true,
         completedChapterFullyWatched: true,
+        chaptersGenuinelyDone: 3,
         onContinue: {},
         onBackHome: {}
     )
@@ -591,6 +608,7 @@ struct ChapterCompleteView: View {
         artist: .mock,
         isJourneyComplete: false,
         completedChapterFullyWatched: false,
+        chaptersGenuinelyDone: 2,
         onContinue: {},
         onBackHome: {}
     )

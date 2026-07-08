@@ -70,6 +70,7 @@ struct JourneySessionView: View {
         let totalChapters: Int
         let isJourneyComplete: Bool
         let completedChapterFullyWatched: Bool
+        let chaptersGenuinelyDone: Int
     }
 
     init(initialChapter: Chapter,
@@ -141,6 +142,7 @@ struct JourneySessionView: View {
                     totalChapters: snap.totalChapters,
                     isJourneyComplete: snap.isJourneyComplete,
                     completedChapterFullyWatched: snap.completedChapterFullyWatched,
+                    chaptersGenuinelyDone: snap.chaptersGenuinelyDone,
                     onContinue: goToNextChapter,
                     onBackHome: dismiss,
                     onSkipForDemo: demoSkipAction(for: snap)
@@ -197,7 +199,8 @@ struct JourneySessionView: View {
             isJourneyComplete: chapters.isComplete(watchedVideoIds),
             // Narrower than isJourneyComplete above — only the just-completed
             // chapter, not the whole journey. See Chapter.isComplete(_:).
-            completedChapterFullyWatched: currentChapter.isComplete(watchedVideoIds)
+            completedChapterFullyWatched: currentChapter.isComplete(watchedVideoIds),
+            chaptersGenuinelyDone: chapters.genuinelyCompletedCount(watched: watchedVideoIds)
         )
         withAnimation(.easeInOut(duration: 0.9)) { phase = .complete }
     }

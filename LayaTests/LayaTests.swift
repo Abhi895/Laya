@@ -136,6 +136,38 @@ struct ChapterCurrentChapterTests {
     }
 }
 
+// Fixes a bug in ChapterCompleteView's locked-screen dot tally: R32's
+// chaptersGenuinelyDone fell back to completedChapter.index whenever the
+// just-completed chapter wasn't fully watched, which silently counts every
+// EARLIER chapter as "done" regardless of whether THEY were genuinely
+// watched — it only had visibility into the current chapter's own
+// completedChapterFullyWatched flag, nothing about chapters before it.
+// Repro: skip-swipe through chapters 1 and 2 with nothing watched at all —
+// the second chapter's completion screen showed "1 of 3" instead of "0 of 3."
+struct ChapterGenuinelyCompletedCountTests {
+
+    @Test func nothingWatchedReturnsZero() {
+        #expect(Journey.mock.chapters.genuinelyCompletedCount(watched: []) == 0)
+    }
+
+    @Test func onlyFirstChapterFullyWatchedCountsOne() {
+        let watched = Set(Chapter.mockBackground.videos.map(\.id))
+        #expect(Journey.mock.chapters.genuinelyCompletedCount(watched: watched) == 1)
+    }
+
+    @Test func twoChaptersReachedButNeitherFullyWatchedReturnsZero() {
+        // The actual bug repro: both Background and Music were phantom-page
+        // skipped (reached, never watched) — genuinely-done count must stay 0.
+        let watched: Set<String> = [Chapter.mockMusic.videos[0].id] // partial only
+        #expect(Journey.mock.chapters.genuinelyCompletedCount(watched: watched) == 0)
+    }
+
+    @Test func allChaptersFullyWatchedCountsAll() {
+        let watched = Set(Journey.mock.chapters.flatMap { $0.videos.map(\.id) })
+        #expect(Journey.mock.chapters.genuinelyCompletedCount(watched: watched) == 3)
+    }
+}
+
 struct JourneyProgressDecodingTests {
 
     @Test func decodesOldPersistedJSONMissingFurthestChapterIndex() throws {

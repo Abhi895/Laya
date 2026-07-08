@@ -54,6 +54,15 @@ extension Array where Element == Chapter {
         }
         return chapter(furthestReached: index)
     }
+
+    /// How many chapters have actually been fully watched — the honest count
+    /// behind the locked screen's "N of M chapters done" tally. Checks every
+    /// chapter's own genuine watch status directly rather than inferring it
+    /// from the just-completed chapter's index, which can't see whether
+    /// EARLIER chapters were also only reached via a phantom-page skip.
+    func genuinelyCompletedCount(watched: Set<String>) -> Int {
+        filter { $0.isComplete(watched) }.count
+    }
 }
 
 #if DEBUG
