@@ -16,6 +16,7 @@ struct HomeReturnView: View {
     @State private var artist: Artist?
     @State private var chapters: [Chapter] = []
     @State private var watchedVideoIds: Set<String> = []
+    @State private var furthestChapterIndex = 0
     @State private var weekStartDate = Date()
 
     #if DEBUG
@@ -301,12 +302,13 @@ struct HomeReturnView: View {
 
     // MARK: - Derived state
 
-    // The chapter the user is on: the first not-yet-completed one (or the last,
-    // once every chapter is done). Completion is derived from the watched set.
-    // Being "current" here is about identity/display, not access — it says
-    // nothing about whether the chapter is actually unlocked yet.
+    // The chapter the user is on: driven by how far they've reached, not by
+    // re-deriving from per-clip watched state — a chapter that was skipped
+    // rather than finished must not pull this backward. Being "current" here
+    // is about identity/display, not access — it says nothing about whether
+    // the chapter is actually unlocked yet.
     private var currentChapter: Chapter? {
-        chapters.first { !$0.isComplete(watchedVideoIds) } ?? chapters.last
+        chapters.currentChapter(furthestReached: furthestChapterIndex, watched: watchedVideoIds)
     }
 
     // Gates the Continue button — without this, a returning user could land
@@ -357,6 +359,7 @@ struct HomeReturnView: View {
             chapters = package.journey.chapters.sorted { $0.index < $1.index }
             weekStartDate = package.assignment.weekStartDate
             watchedVideoIds = package.assignment.progress.watchedVideoIds
+            furthestChapterIndex = package.assignment.progress.furthestChapterIndex
         } catch {
             // No-op — UI-only screen.
         }
@@ -466,7 +469,7 @@ private struct ReturnPreviewService: AssignmentServing {
             journeyId: Journey.mock.id,
             weekStartDate: WeeklyAssignment.currentWeekStartDate(),
             assignedAt: Date(),
-            progress: JourneyProgress(watchedVideoIds: Set(watched), lastWatchedVideoId: nil, completedAt: nil)
+            progress: JourneyProgress(watchedVideoIds: Set(watched), lastWatchedVideoId: nil, furthestChapterIndex: 1)
         )
         return AssignmentPackage(assignment: assignment, journey: .mock, artist: .mock)
     }

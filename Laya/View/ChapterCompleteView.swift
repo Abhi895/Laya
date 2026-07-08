@@ -33,11 +33,12 @@ struct ChapterCompleteView: View {
     var totalChapters: Int = 3
     /// Whether every chapter has actually been watched — the real source of
     /// truth for "the journey is done", computed once by the caller (see
-    /// Journey/[Chapter].isComplete) rather than inferred here from
-    /// `nextChapter`. Falls back to `nextChapter == nil` only if this is
-    /// somehow false at the very last chapter, so a `.finished` screen is
-    /// never skipped.
+    /// Journey/[Chapter].isComplete) rather than inferred here from `nextChapter`.
     var isJourneyComplete: Bool = false
+    /// Whether every clip in `completedChapter` was actually watched — vs. merely
+    /// reached via a phantom-page skip. Feeds `Variant.resolve` and the locked
+    /// screen's progress tally (`chaptersGenuinelyDone`).
+    let completedChapterFullyWatched: Bool
 
     /// Advance to the next chapter's intro (unlocked path only).
     var onContinue: () -> Void
@@ -73,7 +74,7 @@ struct ChapterCompleteView: View {
     var body: some View {
         ZStack {
             // Locked screen is a full-bleed dark editorial; everything else is cream.
-            (variant == .locked ? Color.ink : Color.cream).ignoresSafeArea()
+            (isLocked ? Color.ink : Color.cream).ignoresSafeArea()
             layoutContent
         }
         // Flattens the entire visual content — including the ignoresSafeArea color —
@@ -94,7 +95,7 @@ struct ChapterCompleteView: View {
 
     @ViewBuilder
     private var layoutContent: some View {
-        if variant == .unlocked {
+        if isUnlocked {
             // "UP NEXT" pinned to top; ChapterInfoBlock centered; actions at bottom.
             VStack(spacing: 0) {
                 Text("Up next")
@@ -123,7 +124,7 @@ struct ChapterCompleteView: View {
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 44)
-        } else if variant == .locked {
+        } else if isLocked {
             // Dark editorial layout: a height-capped photo fading into the ink
             // base beneath it, so the text panel always reads against solid
             // ink rather than against whatever the photo happens to show at
@@ -221,14 +222,14 @@ struct ChapterCompleteView: View {
                     HStack(spacing: 10) {
                         ForEach(0..<totalChapters, id: \.self) { i in
                             Circle()
-                                .strokeBorder(Color.cream.opacity(i <= completedChapter.index ? 0.85 : 0.28), lineWidth: 1)
+                                .strokeBorder(Color.cream.opacity(i < chaptersGenuinelyDone ? 0.85 : 0.28), lineWidth: 1)
                                 .background(
                                     Circle()
-                                        .fill(i <= completedChapter.index ? Color.cream.opacity(0.85) : Color.clear)
+                                        .fill(i < chaptersGenuinelyDone ? Color.cream.opacity(0.85) : Color.clear)
                                 )
                                 .frame(width: 5, height: 5)
                         }
-                        Text("\(completedChapter.index + 1) of \(totalChapters) chapters done")
+                        Text("\(chaptersGenuinelyDone) of \(totalChapters) chapters done")
                             .font(.layaBody(10, weight: .regular))
                             .tracking(1.5)
                             .textCase(.uppercase)
@@ -366,7 +367,7 @@ struct ChapterCompleteView: View {
                 .opacity(showActions ? 1 : 0)
                 .offset(y: showActions ? 0 : 12)
 
-            if artist != nil {
+            if artist != nil && isJourneyComplete {
                 SecondaryActionButton(
                     title: "Share Journey",
                     icon: Image(systemName: "square.and.arrow.up"),
@@ -394,7 +395,7 @@ struct ChapterCompleteView: View {
     // MARK: - Choreography
 
     private func runCascade() async {
-        if variant == .locked {
+        if isLocked {
             withAnimation(.easeOut(duration: lockedBeatFade).delay(lockedCascadeStart)) {
                 showHead = true
             }
@@ -415,7 +416,7 @@ struct ChapterCompleteView: View {
         withAnimation(.easeOut(duration: beatFade).delay(cascadeStart)) {
             showHead = true
         }
-        if variant == .unlocked {
+        if isUnlocked {
             // Mirror ChapterIntroView's waterfall: numeral → title → divider+subtitle.
             withAnimation(.easeOut(duration: beatFade).delay(cascadeStart + beatGap)) {
                 showNumeral = true
@@ -447,30 +448,64 @@ struct ChapterCompleteView: View {
 
     // MARK: - Variant + copy
 
-    private enum Variant { case unlocked, locked, finished }
+    enum Variant: Equatable {
+        case unlocked
+        case locked(chapterFullyWatched: Bool)
+        case finished(journeyFullyWatched: Bool)
+
+        /// journeyFullyWatched dominates hasNextChapter — a genuinely-done journey
+        /// is never shown a stale "up next" screen, mirroring the original guard's
+        /// dead-end-avoidance intent, just now conditioned on the honest flag
+        /// instead of firing unconditionally whenever nextChapter is nil.
+        static func resolve(hasNextChapter: Bool, isNextUnlocked: Bool,
+                             chapterFullyWatched: Bool, journeyFullyWatched: Bool) -> Variant {
+            guard !journeyFullyWatched, hasNextChapter else {
+                return .finished(journeyFullyWatched: journeyFullyWatched)
+            }
+            return isNextUnlocked ? .unlocked : .locked(chapterFullyWatched: chapterFullyWatched)
+        }
+    }
 
     private var variant: Variant {
-        guard !isJourneyComplete, nextChapter != nil else { return .finished }
-        return isNextUnlocked ? .unlocked : .locked
+        .resolve(hasNextChapter: nextChapter != nil, isNextUnlocked: isNextUnlocked,
+                  chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: isJourneyComplete)
+    }
+
+    private var isUnlocked: Bool { variant == .unlocked }
+
+    private var isLocked: Bool {
+        if case .locked = variant { return true }
+        return false
     }
 
     private var eyebrow: String {
         switch variant {
         case .unlocked: return "Up next"
-        case .locked:   return "Chapter \(romanNumeral(completedChapter.index + 1)) complete"
-        case .finished: return "Journey complete"
+        case .locked(let watched):
+            let numeral = romanNumeral(completedChapter.index + 1)
+            return watched ? "Chapter \(numeral) complete" : "Chapter \(numeral)"
+        case .finished(let watched): return watched ? "Journey complete" : "End of the week"
         }
     }
 
     private var headline: String {
         switch variant {
         case .unlocked: return ""
-        case .locked:   return "Complete."
-        case .finished: return "That's \(artist?.name ?? "the artist")."
+        case .locked: return "Complete."
+        case .finished(let watched): return watched ? "That's \(artist?.name ?? "the artist")." : ""
         }
     }
 
     private var headlineSize: CGFloat { 44 }
+
+    /// The just-completed chapter only counts toward the locked screen's tally if
+    /// it was genuinely watched — reaching it via a phantom-page skip doesn't earn
+    /// it. Earlier chapters keep the existing "reached" semantics; this fix is
+    /// scoped to the chapter just completed, matching the narrow
+    /// completedChapterFullyWatched signal.
+    private var chaptersGenuinelyDone: Int {
+        completedChapterFullyWatched ? completedChapter.index + 1 : completedChapter.index
+    }
 
     /// "CHAPTER II • DROPS WEDNESDAY" — eyebrow on the dark locked screen.
     private var lockedNextEyebrow: String {
@@ -497,6 +532,7 @@ struct ChapterCompleteView: View {
         daysUntilUnlock: 0,
         weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
+        completedChapterFullyWatched: true,
         onContinue: {},
         onBackHome: {}
     )
@@ -510,6 +546,21 @@ struct ChapterCompleteView: View {
         daysUntilUnlock: 2,
         weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
+        completedChapterFullyWatched: true,
+        onContinue: {},
+        onBackHome: {}
+    )
+}
+
+#Preview("Locked next (chapter skipped)") {
+    ChapterCompleteView(
+        completedChapter: .mockBackground,
+        nextChapter: .mockMusic,
+        isNextUnlocked: false,
+        daysUntilUnlock: 2,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
+        artist: .mock,
+        completedChapterFullyWatched: false,
         onContinue: {},
         onBackHome: {}
     )
@@ -524,6 +575,22 @@ struct ChapterCompleteView: View {
         weekStartDate: WeeklyAssignment.currentWeekStartDate(),
         artist: .mock,
         isJourneyComplete: true,
+        completedChapterFullyWatched: true,
+        onContinue: {},
+        onBackHome: {}
+    )
+}
+
+#Preview("Journey finished (skipped, not honest)") {
+    ChapterCompleteView(
+        completedChapter: .mockGoals,
+        nextChapter: nil,
+        isNextUnlocked: false,
+        daysUntilUnlock: 0,
+        weekStartDate: WeeklyAssignment.currentWeekStartDate(),
+        artist: .mock,
+        isJourneyComplete: false,
+        completedChapterFullyWatched: false,
         onContinue: {},
         onBackHome: {}
     )

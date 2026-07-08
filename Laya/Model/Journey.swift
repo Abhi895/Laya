@@ -27,6 +27,33 @@ extension Array where Element == Chapter {
     func isComplete(_ watched: Set<String>) -> Bool {
         !isEmpty && allSatisfy { $0.isComplete(watched) }
     }
+
+    /// The chapter the user should land on, given how many chapters they've
+    /// reached (index one past the last chapter completed). Clamps so an
+    /// index at or beyond the end resolves to the last chapter. Derived
+    /// purely from the monotonic furthest-reached marker, never from
+    /// per-clip watched state — a partially skipped earlier chapter can't
+    /// pull this backward.
+    func chapter(furthestReached index: Int) -> Chapter? {
+        guard !isEmpty else { return nil }
+        return self[Swift.min(Swift.max(index, 0), count - 1)]
+    }
+
+    /// The chapter Home should show as current: normally just the furthest
+    /// one reached. But once every chapter has been passed through at least
+    /// once (`index >= count`), an earlier chapter can still hold a genuine,
+    /// never-healed watch gap — e.g. "Skip for demo" jumping past it, or a
+    /// clip abandoned mid-play. Without routing back to that gap, the
+    /// journey could never honestly satisfy `isComplete` and Home would
+    /// strand the user on a later chapter forever. Only applies at the end —
+    /// mid-journey, this must stay pure furthest-reached, or forward
+    /// progress would silently revert to an earlier chapter again.
+    func currentChapter(furthestReached index: Int, watched: Set<String>) -> Chapter? {
+        if index >= count, let gap = first(where: { !$0.isComplete(watched) }) {
+            return gap
+        }
+        return chapter(furthestReached: index)
+    }
 }
 
 #if DEBUG
@@ -106,9 +133,7 @@ extension JourneyVideo {
     static let mockBackgroundVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-bg-1",
-            // Bundled 1080x1920 portrait clip so the first page genuinely fills a
-            // phone screen edge-to-edge (the remote samples are letterboxed 16:9).
-            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/video/movie_300.mp4")!,
             posterURL: nil,
             kind: .interview,
             title: "Growing up",
@@ -125,8 +150,7 @@ extension JourneyVideo {
     static let mockMusicVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-music-1",
-            // Bundled clip — same source as background-1, confirmed to play on device.
-            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/sintel/trailer.mp4")!,
             posterURL: nil,
             kind: .musicVideo,
             title: "Know it",
@@ -160,7 +184,7 @@ extension JourneyVideo {
     static let mockBubbaBackgroundVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-bubba-bg-1",
-            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/video/movie_300.mp4")!,
             posterURL: nil,
             kind: .interview,
             title: "Growing up",
@@ -177,7 +201,7 @@ extension JourneyVideo {
     static let mockBubbaMusicVideos: [JourneyVideo] = [
         JourneyVideo(
             id: "video-bubba-music-1",
-            videoURL: Bundle.main.url(forResource: "portrait_sample", withExtension: "mp4")!,
+            videoURL: URL(string: "https://media.w3.org/2010/05/sintel/trailer.mp4")!,
             posterURL: nil,
             kind: .musicVideo,
             title: "Know it",

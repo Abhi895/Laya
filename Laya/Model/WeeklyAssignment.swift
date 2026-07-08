@@ -22,11 +22,33 @@ struct JourneyProgress: Codable {
     // Chapter completion and per-chapter progress are derived from this against the
     // catalog (Chapter.videos), so there's nothing to keep in sync.
     var watchedVideoIds: Set<String>
-    // Explicit resume pointer — which video to drop the user back into. The watched
-    // set is unordered, so this can't be derived from it.
+    // No longer drives resume placement (see Chapter.firstUnwatchedIndex, which
+    // scans watchedVideoIds directly instead) — kept only as a persisted record
+    // of the most recently reached-or-finished clip.
     var lastWatchedVideoId: String?
-    // Set when all 3 chapters are done
-    var completedAt: Date?
+    // How far the user has gotten: one past the last chapter whose completion
+    // event fired (natural end or the phantom-page swipe-past shortcut alike).
+    // Monotonic — never regresses. Deliberately independent of watchedVideoIds,
+    // which stays honest per-clip; deriving "current chapter" from that instead
+    // of this is what let skip-swiped progress silently revert.
+    var furthestChapterIndex: Int
+
+    init(watchedVideoIds: Set<String>, lastWatchedVideoId: String?, furthestChapterIndex: Int = 0) {
+        self.watchedVideoIds = watchedVideoIds
+        self.lastWatchedVideoId = lastWatchedVideoId
+        self.furthestChapterIndex = furthestChapterIndex
+    }
+
+    // Tolerates already-persisted UserDefaults data written before this field
+    // existed — decodes to 0 rather than throwing, which (via LocalProgressStore's
+    // `try? decode([String: JourneyProgress])`) would otherwise silently wipe
+    // every stored assignment's progress, not just this one's.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        watchedVideoIds = try container.decode(Set<String>.self, forKey: .watchedVideoIds)
+        lastWatchedVideoId = try container.decodeIfPresent(String.self, forKey: .lastWatchedVideoId)
+        furthestChapterIndex = try container.decodeIfPresent(Int.self, forKey: .furthestChapterIndex) ?? 0
+    }
 }
 
 extension WeeklyAssignment {

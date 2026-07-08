@@ -44,6 +44,14 @@ struct JourneySessionView: View {
     @State private var assignmentId = ""
     @State private var watchedVideoIds: Set<String> = []
     @State private var lastWatchedVideoId: String?
+    @State private var furthestChapterIndex = 0
+    // Chains persist writes so a later call's write can never be overtaken by
+    // an earlier one still in flight — markWatched and exitPlayer both fire
+    // in the same tick on the last clip of a chapter, each dispatching its
+    // own updateProgress call; without this, the two unstructured Tasks have
+    // no ordering guarantee and the furthestChapterIndex bump could silently
+    // lose the race.
+    @State private var persistTask: Task<Void, Never>?
 
     // Frozen snapshot of the data passed to ChapterCompleteView, captured at the
     // moment we enter .complete. This prevents goToNextChapter() updating
@@ -61,6 +69,7 @@ struct JourneySessionView: View {
         let weekStartDate: Date
         let totalChapters: Int
         let isJourneyComplete: Bool
+        let completedChapterFullyWatched: Bool
     }
 
     init(initialChapter: Chapter,
@@ -131,6 +140,7 @@ struct JourneySessionView: View {
                     artist: artist,
                     totalChapters: snap.totalChapters,
                     isJourneyComplete: snap.isJourneyComplete,
+                    completedChapterFullyWatched: snap.completedChapterFullyWatched,
                     onContinue: goToNextChapter,
                     onBackHome: dismiss,
                     onSkipForDemo: demoSkipAction(for: snap)
@@ -165,6 +175,14 @@ struct JourneySessionView: View {
     // Snapshot the complete view's data first so a subsequent goToNextChapter()
     // updating currentChapter can't re-render the still-fading-out screen.
     private func exitPlayer() {
+        // Advance the furthest-reached marker here — this is the one place
+        // both the natural end-of-chapter and the phantom-page skip already
+        // funnel through (via onChapterComplete), so it's the single correct
+        // hook regardless of which path triggered completion. Unlike
+        // markResumePoint/markWatched, nothing else persists this, so it
+        // needs its own explicit persist call.
+        furthestChapterIndex = max(furthestChapterIndex, currentChapter.index + 1)
+        persistProgress()
         completeSnapshot = CompleteSnapshot(
             completedChapter: currentChapter,
             nextChapter: nextChapter,
@@ -176,7 +194,10 @@ struct JourneySessionView: View {
             // Journey/[Chapter].isComplete. markWatched() already recorded
             // this chapter's last video before onChapterComplete fired, so
             // watchedVideoIds is current as of this exact moment.
-            isJourneyComplete: chapters.isComplete(watchedVideoIds)
+            isJourneyComplete: chapters.isComplete(watchedVideoIds),
+            // Narrower than isJourneyComplete above — only the just-completed
+            // chapter, not the whole journey. See Chapter.isComplete(_:).
+            completedChapterFullyWatched: currentChapter.isComplete(watchedVideoIds)
         )
         withAnimation(.easeInOut(duration: 0.9)) { phase = .complete }
     }
@@ -247,22 +268,24 @@ struct JourneySessionView: View {
     private func persistProgress() {
         let progress = JourneyProgress(watchedVideoIds: watchedVideoIds,
                                        lastWatchedVideoId: lastWatchedVideoId,
-                                       completedAt: nil)
+                                       furthestChapterIndex: furthestChapterIndex)
         let id = assignmentId
-        Task { try? await service.updateProgress(progress, assignmentId: id) }
+        let previous = persistTask
+        persistTask = Task {
+            _ = await previous?.value
+            try? await service.updateProgress(progress, assignmentId: id)
+        }
     }
 
     // MARK: - Derived state
 
-    // Where to drop the player in: on resume, the clip after the resume pointer
-    // within this chapter; otherwise the first clip.
+    // Where to drop the player in: on resume, the first clip that was never
+    // genuinely watched within this chapter; otherwise the first clip. Uses
+    // the honest watched set directly rather than a "last touched" pointer,
+    // which paging forward without watching could stomp past real gaps.
     private var resumeStartIndex: Int {
-        guard introIsResume,
-              let pointer = lastWatchedVideoId,
-              let watchedIdx = currentChapter.videos.firstIndex(where: { $0.id == pointer })
-        else { return 0 }
-        // Resume on the next unwatched clip, clamped to the last clip.
-        return min(watchedIdx + 1, currentChapter.videos.count - 1)
+        guard introIsResume else { return 0 }
+        return currentChapter.firstUnwatchedIndex(watchedVideoIds)
     }
 
     private var nextChapter: Chapter? {
@@ -290,6 +313,7 @@ struct JourneySessionView: View {
             assignmentId = package.assignment.id
             watchedVideoIds = package.assignment.progress.watchedVideoIds
             lastWatchedVideoId = package.assignment.progress.lastWatchedVideoId
+            furthestChapterIndex = package.assignment.progress.furthestChapterIndex
             // Prefer the catalog copy of the chapter (same id) so we always have
             // the full video list, even if the caller passed a lightweight one.
             if let canonical = chapters.first(where: { $0.id == currentChapter.id }) {

@@ -93,8 +93,7 @@ struct MockAssignmentService: AssignmentServing {
             assignedAt: Date(),
             progress: JourneyProgress(
                 watchedVideoIds: [],
-                lastWatchedVideoId: nil,
-                completedAt: nil
+                lastWatchedVideoId: nil
             )
         )
         assignment.progress = MockProgressStore.shared.progress(for: assignmentId, fallback: assignment.progress)
@@ -138,7 +137,7 @@ struct MockAssignmentService: AssignmentServing {
             JourneyProgress(
                 watchedVideoIds: watched,
                 lastWatchedVideoId: chapters.dropLast().last?.videos.last?.id,
-                completedAt: nil
+                furthestChapterIndex: max(0, chapters.count - 1)
             ),
             for: "assignment-mock-\(content.artist.id)"
         )

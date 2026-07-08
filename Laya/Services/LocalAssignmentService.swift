@@ -81,7 +81,10 @@ struct LocalAssignmentService: AssignmentServing {
             JourneyProgress(
                 watchedVideoIds: watched,
                 lastWatchedVideoId: chapters.dropLast().last?.videos.last?.id,
-                completedAt: nil
+                // Skips straight to the last chapter — furthestChapterIndex
+                // must reflect that, or Home would send the user back to
+                // chapter 1 despite every earlier chapter reading as watched.
+                furthestChapterIndex: max(0, chapters.count - 1)
             ),
             for: "assignment-\(journey.id)"
         )
@@ -204,7 +207,7 @@ private final class LocalProgressStore {
     }
 
     func progress(for assignmentId: String) -> JourneyProgress {
-        progress[assignmentId] ?? JourneyProgress(watchedVideoIds: [], lastWatchedVideoId: nil, completedAt: nil)
+        progress[assignmentId] ?? JourneyProgress(watchedVideoIds: [], lastWatchedVideoId: nil)
     }
 
     func set(_ value: JourneyProgress, for assignmentId: String) {

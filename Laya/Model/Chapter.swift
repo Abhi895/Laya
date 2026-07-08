@@ -40,6 +40,14 @@ extension Chapter {
         !videos.isEmpty && videos.allSatisfy { watched.contains($0.id) }
     }
 
+    /// The index of the first video not yet in `watched`, or the last index
+    /// if every video has already been watched. Used for resume — finds
+    /// genuine gaps instead of trusting a "last touched" pointer, which
+    /// paging forward without watching can stomp.
+    func firstUnwatchedIndex(_ watched: Set<String>) -> Int {
+        videos.firstIndex(where: { !watched.contains($0.id) }) ?? max(0, videos.count - 1)
+    }
+
     /// The wall-clock moment this chapter becomes available, given the shared
     /// weekly anchor.
     func unlockDate(weekStartDate: Date) -> Date {
