@@ -44,8 +44,25 @@ struct JourneyPlayerView: View {
     /// hierarchy before the slide-down exit animation, preventing any bleed-through
     /// since AVPlayerLayer renders on a separate hardware surface.
     @State private var videoDetached = false
-    /// Controls the fadeable chrome layer (everything except the ✕).
-    @State private var showChrome = true
+    /// Drives `bottomBar` (title/track info, action buttons) — fully hides
+    /// and reveals. Starts false — the first clip of a chapter plays with
+    /// bottomBar hidden until `revealChromeForEntrance()` brings it in after
+    /// a short delay, so the viewer's first look isn't immediately overlaid
+    /// with the title.
+    @State private var showChrome = false
+    /// Drives `topBar` (progress bar, eyebrow, counter, close button)
+    /// separately from `showChrome` — it only ever dims to 0.35, never fully
+    /// hides, and stays tappable regardless. Deliberately NOT tied to a manual
+    /// swipe's dip or the entrance delay — those are active-navigation
+    /// moments with the video still visible, so topBar stays fully bright
+    /// through them. The auto-advance breath is the one exception: the whole
+    /// screen goes to opaque ink there, so topBar dims in step with it too
+    /// (see beginAutoAdvance) — a bright topBar floating over blank ink would
+    /// read as a glitch, not "still active." Otherwise this only becomes true
+    /// when `scheduleChromeAutoHide()`'s idle timer actually fires with no
+    /// interaction; every other chrome-reveal path resets it back to
+    /// false immediately.
+    @State private var topBarDimmed = false
     @State private var chromeTask: Task<Void, Never>?
     /// Drives the ink-dip "breath" between auto-advanced clips (not manual
     /// swipes) — see beginAutoAdvance(). 0 = clear, 1 = fully covered.
@@ -65,33 +82,39 @@ struct JourneyPlayerView: View {
             feed.ignoresSafeArea()
             // Decorative only — must never intercept the horizontal paging drag.
             scrim.ignoresSafeArea().allowsHitTesting(false)
-            chrome
+            // Lower chrome: per-clip title/track info + action buttons. Fully
+            // hides — this is the part that benefits from disappearing before
+            // its content changes (see revealChrome's swipe dip).
+            bottomBar
+                .padding(.horizontal, 22)
+                .padding(.bottom, 38)
                 .opacity(showChrome ? 1 : 0)
                 .allowsHitTesting(showChrome)
-            // The auto-advance "breath" — covers clip content AND chrome so a
-            // finished clip never sits mid-swap with the next one's title/counter.
-            // Sits below the progress bar, which stays visible through everything.
+            // Auto-advance breath — covers video and bottomBar; topBar (below)
+            // stays dimly visible through it, same as it always has.
             Color.ink
                 .ignoresSafeArea()
                 .opacity(breathOpacity)
                 .allowsHitTesting(isBreathing)
-            // Progress bar persists when chrome fades but dims — still anchors
-            // position in the chapter without competing with the video.
-            VStack(spacing: 0) {
-                ProgressBar(progress: manager.chapterProgressFraction)
-                    .frame(height: 2)
-                    .padding(.horizontal, 22)
-                    .padding(.top, 12)
-                Spacer(minLength: 0)
-            }
-            .opacity(showChrome ? 1 : 0.35)
-            .animation(.easeOut(duration: 0.5), value: showChrome)
-            .allowsHitTesting(false)
+            // Upper chrome: progress bar, eyebrow, counter, close button.
+            // Orientation info and the exit — never fully hides, only dims,
+            // matching the progress bar's original "anchors position without
+            // competing with the video" design. Hit-testing is never gated on
+            // showChrome: the close button (and debug skip button) must stay
+            // tappable even while dimmed, so leaving is never functionally
+            // blocked, only visually quiet.
+            topBar
+                .opacity(topBarDimmed ? 0.35 : 1)
+                .animation(.easeOut(duration: 0.5), value: topBarDimmed)
+                .allowsHitTesting(true)
         }
         .onAppear { setup() }
         .onDisappear { manager.teardown(); chromeTask?.cancel(); breathTask?.cancel() }
         .onChange(of: isFullyPresented) { _, newValue in
-            if newValue { manager.allowPlayback() }
+            if newValue {
+                manager.allowPlayback()
+                revealChromeForEntrance()
+            }
         }
         .onChange(of: scrollID) { oldValue, newValue in
             if let newValue {
@@ -141,9 +164,15 @@ struct JourneyPlayerView: View {
             // through the hold so its reveal can be synced to the ink lifting
             // below, instead of fading in early and finishing invisibly
             // underneath it (which is what made it feel like it "just appeared").
+            // topBar dims too — unlike a manual swipe, the whole screen is
+            // covered here, so a bright topBar floating over blank ink would
+            // look like a glitch rather than "still active." Dimming keeps it
+            // reading as a quiet, still presence through the pause, same as
+            // before topBar and bottomBar were split into separate tiers.
             pendingAutoplayHoldIndex = next
             scrollID = next
             showChrome = false
+            topBarDimmed = true
 
             try? await Task.sleep(for: .seconds(breathHold))
             guard !Task.isCancelled else { isBreathing = false; return }
@@ -154,6 +183,7 @@ struct JourneyPlayerView: View {
             withAnimation(.easeInOut(duration: breathReveal)) {
                 breathOpacity = 0
                 showChrome = true
+                topBarDimmed = false
             }
             try? await Task.sleep(for: .seconds(breathReveal))
             isBreathing = false
@@ -161,19 +191,68 @@ struct JourneyPlayerView: View {
         }
     }
 
-    // Shows chrome briefly then fades — used on clip change and after resume.
-    // Does not hide if the player is paused when the timer fires.
+    // Chrome always dips out and back in on a manual page change, even if it
+    // was already visible — guarantees the label content is never overwritten
+    // in place (old title swapped for new while fully opaque, which is what
+    // made a manual swipe's text feel like it "suddenly changed"). Mirrors the
+    // auto-advance breath's hide→hold→reveal cadence above, but shorter and
+    // without an ink cover: the video keeps paging exactly as fast as the
+    // user's swipe, only the metadata layer takes a beat before showing the
+    // (already-updated) new content. Also used after resume, where the same
+    // "dip in the new state" framing applies.
+    private let chromeSwipeFadeOut: Double = 0.2
+    private let chromeSwipeHold: Double = 0.2
+    private let chromeSwipeFadeIn: Double = 0.5
+
     private func revealChrome() {
         chromeTask?.cancel()
-        withAnimation(.easeOut(duration: 0.2)) { showChrome = true }
-        scheduleChromeAutoHide()
+        // Swiping is active navigation, not idle — topBar never dips for
+        // this, it just un-dims immediately if a prior idle timeout had
+        // already dimmed it.
+        withAnimation(.easeOut(duration: 0.3)) { topBarDimmed = false }
+        chromeTask = Task {
+            withAnimation(.easeOut(duration: chromeSwipeFadeOut)) { showChrome = false }
+            try? await Task.sleep(for: .seconds(chromeSwipeFadeOut))
+            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: .seconds(chromeSwipeHold))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: chromeSwipeFadeIn)) { showChrome = true }
+            try? await Task.sleep(for: .seconds(chromeSwipeFadeIn))
+            guard !Task.isCancelled else { return }
+            scheduleChromeAutoHide()
+        }
+    }
+
+    /// How long the first clip of a chapter plays with only a dimmed topBar —
+    /// no bottomBar title/track info — once it's actually visible, before
+    /// bottomBar fades in too. Gives the viewer's first look at the artist a
+    /// beat before the title overlays it, matching the "stepping into
+    /// something immersive" framing of the entrance crossfade itself.
+    /// bottomBar is guaranteed already-hidden here (showChrome starts false),
+    /// so unlike revealChrome() there's no fade-out step needed — just a
+    /// delay, then a fade-in.
+    private let entranceChromeDelay: Double = 0.4
+
+    private func revealChromeForEntrance() {
+        chromeTask?.cancel()
+        chromeTask = Task {
+            try? await Task.sleep(for: .seconds(entranceChromeDelay))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.5)) { showChrome = true }
+            try? await Task.sleep(for: .seconds(0.5))
+            guard !Task.isCancelled else { return }
+            scheduleChromeAutoHide()
+        }
     }
 
     private func scheduleChromeAutoHide() {
         chromeTask = Task {
-            try? await Task.sleep(for: .seconds(7))
+            try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled, !manager.isPaused else { return }
-            withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
+            withAnimation(.easeOut(duration: 0.5)) {
+                showChrome = false
+                topBarDimmed = true
+            }
         }
     }
 
@@ -189,6 +268,7 @@ struct JourneyPlayerView: View {
             }
             chromeTask?.cancel()
             showChrome = true   // instant snap — no withAnimation wrapper
+            topBarDimmed = false
         } else {
             // Both mutations must land in the SAME withAnimation transaction.
             // Calling this, then separately calling revealChrome() (which does
@@ -200,6 +280,7 @@ struct JourneyPlayerView: View {
             withAnimation(.easeOut(duration: 0.35)) {
                 manager.togglePlay(index: index)
                 showChrome = true
+                topBarDimmed = false
             }
             scheduleChromeAutoHide()
         }
@@ -249,8 +330,12 @@ struct JourneyPlayerView: View {
         )
     }
 
-    private var chrome: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    private var topBar: some View {
+        VStack(spacing: 0) {
+            ProgressBar(progress: manager.chapterProgressFraction)
+                .frame(height: 2)
+                .padding(.horizontal, 22)
+                .padding(.top, 12)
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     chapterEyebrow
@@ -263,15 +348,9 @@ struct JourneyPlayerView: View {
                 closeButton
             }
             .padding(.horizontal, 22)
-            .padding(.top, 8) // space below the always-visible progress bar (2pt bar + 6pt gap)
-
+            .padding(.top, 8) // space below the progress bar (2pt bar + 6pt gap)
             Spacer(minLength: 0)
-
-            bottomBar
-                .padding(.horizontal, 22)
         }
-        .padding(.top, 12)
-        .padding(.bottom, 38)
     }
 
     // "II • Music" — Antic Didone, cream. Matches the home / chapter markers.
@@ -379,17 +458,11 @@ struct JourneyPlayerView: View {
         manager.onVideoReached = onVideoReached
         manager.onVideoCompleted = onVideoCompleted
         manager.start(videos: chapter.videos, startIndex: startIndex)
-        if isFullyPresented { manager.allowPlayback() }
-        scrollID = startIndex
-        // Start the initial hide timer directly — onChange fires immediately after
-        // and would reset a revealChrome() call, making the effective window only
-        // ~2 s after the 0.9 s insertion animation. 5 s here gives ~4 s of clearly
-        // visible chrome once the view is fully opaque.
-        chromeTask = Task {
-            try? await Task.sleep(for: .seconds(8))
-            guard !Task.isCancelled, !manager.isPaused else { return }
-            withAnimation(.easeOut(duration: 0.5)) { showChrome = false }
+        if isFullyPresented {
+            manager.allowPlayback()
+            revealChromeForEntrance()
         }
+        scrollID = startIndex
     }
 
     private func openSpotify(trackId: String) {
@@ -457,19 +530,24 @@ private struct VideoCell: View {
         ZStack {
             Color.ink
 
-            // Poster placeholder beneath the video: the clip's own frame-zero
-            // thumbnail once the manager has generated it (matches what's about
-            // to play, so a cut never flashes unrelated content), falling back
-            // to a remote poster, then the artist image, then ink while it's
-            // still generating. Gated on videoDetached too — once the video layer
-            // is pulled (chapter-complete or dismiss), showing the poster in its
-            // place would just swap one flash (the video's last frame) for another
-            // (its thumbnail); falling back to plain ink here blends into both this
-            // view's own base and the ink completion screen it's fading toward.
+            // Poster placeholder beneath the video. Once this clip has actually
+            // played and stopped being current, prefer the exact frame it was
+            // last showing (manager.lastFrames) — this is what a slow manual
+            // swipe exposes if the AVPlayerLayer goes momentarily transparent
+            // mid-drag, so the outgoing clip stays frozen in place instead of
+            // visibly rewinding to its first frame. Before that, fall back to
+            // the clip's own frame-zero thumbnail (matches what's about to play,
+            // so a cut never flashes unrelated content), then a remote poster,
+            // then the artist image, then ink while it's still generating.
+            // Gated on videoDetached too — once the video layer is pulled
+            // (chapter-complete or dismiss), showing a poster in its place would
+            // just swap one flash for another; falling back to plain ink here
+            // blends into both this view's own base and the ink completion
+            // screen it's fading toward.
             if videoDetached {
                 EmptyView()
-            } else if let thumbnail = manager.thumbnails[index] {
-                Image(uiImage: thumbnail)
+            } else if let frame = manager.lastFrames[index] ?? manager.thumbnails[index] {
+                Image(uiImage: frame)
                     .resizable()
                     .scaledToFill()
             } else {

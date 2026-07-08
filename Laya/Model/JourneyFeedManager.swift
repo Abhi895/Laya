@@ -42,6 +42,13 @@ final class JourneyFeedManager {
     /// generated locally so it always matches the clip it sits under (unlike
     /// a generic artist photo, which reads as a mismatch flash on cut).
     private(set) var thumbnails: [Int: UIImage] = [:]
+    /// Last frame actually displayed by a clip that has played and then
+    /// stopped being current (manual swipe away or auto-advance), keyed by
+    /// index. Preferred over `thumbnails` (always frame-zero) as the cell's
+    /// fallback poster so a clip freezes on its real position instead of
+    /// rewinding to its first frame if the AVPlayerLayer goes momentarily
+    /// transparent mid-transition.
+    private(set) var lastFrames: [Int: UIImage] = [:]
     /// Elapsed chapter time divided by total chapter duration — moves at a
     /// constant rate regardless of individual clip lengths. Falls back to
     /// clip-count fraction while durations are still loading.
@@ -95,6 +102,7 @@ final class JourneyFeedManager {
     @ObservationIgnored private var endObservers: [Int: NSObjectProtocol] = [:]
     @ObservationIgnored private var loadTasks: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private var thumbnailTasks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private var lastFrameTasks: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private var fadeTasks: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private var timeObserver: Any?
 
@@ -148,6 +156,7 @@ final class JourneyFeedManager {
             player.pause()
         }
         if previousIndex != index {
+            captureLastFrame(index: previousIndex)
             fadeOutAndPause(index: previousIndex)
         }
         if let player = players[index] {
@@ -245,12 +254,14 @@ final class JourneyFeedManager {
         timeObserver = nil
         loadTasks.values.forEach { $0.cancel() }
         thumbnailTasks.values.forEach { $0.cancel() }
+        lastFrameTasks.values.forEach { $0.cancel() }
         fadeTasks.values.forEach { $0.cancel() }
         statusObservations.values.forEach { $0.invalidate() }
         endObservers.values.forEach { NotificationCenter.default.removeObserver($0) }
         players.values.forEach { $0.pause() }
         loadTasks.removeAll()
         thumbnailTasks.removeAll()
+        lastFrameTasks.removeAll()
         fadeTasks.removeAll()
         statusObservations.removeAll()
         endObservers.removeAll()
@@ -297,6 +308,28 @@ final class JourneyFeedManager {
                     self.installTimeObserver(on: player, index: index)
                 }
             }
+        }
+    }
+
+    /// Grabs the exact frame the clip was showing right as it stops being
+    /// current, so a cell that goes momentarily transparent mid-swipe (see
+    /// VideoCell) reveals a matching freeze-frame instead of rewinding to
+    /// frame-zero. Skipped for clips barely into playback — the frame-zero
+    /// thumbnail already covers that case.
+    private func captureLastFrame(index: Int) {
+        guard let player = players[index], let item = player.currentItem else { return }
+        let time = player.currentTime()
+        guard time.seconds > 0.05 else { return }
+        let generator = AVAssetImageGenerator(asset: item.asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        lastFrameTasks[index]?.cancel()
+        lastFrameTasks[index] = Task { [weak self] in
+            guard let result = try? await generator.image(at: time) else { return }
+            guard let self, !Task.isCancelled else { return }
+            self.lastFrames[index] = UIImage(cgImage: result.image)
+            self.lastFrameTasks[index] = nil
         }
     }
 

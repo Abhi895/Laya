@@ -50,6 +50,16 @@
         "unlockOffsetDays": 0,
         "videos": [
           {
+            "id": "video-music-6",
+            "localFilename": "Kin_LissonGrove.mp4",
+            "remoteURL": null,
+            "posterRemoteURL": null,
+            "kind": "musicVideo",
+            "title": "kin",
+            "spotifyTrackId": "0QfwdYeZSKPF4njp2H0hZ2",
+            "secondaryArtist": null
+          },
+          {
             "id": "video-music-1",
             "localFilename": "Kin_Music_1.mp4",
             "remoteURL": null,
