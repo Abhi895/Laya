@@ -79,7 +79,7 @@
          <EnvironmentVariable
             key = "DEMO_RECORDING"
             value = "1"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>

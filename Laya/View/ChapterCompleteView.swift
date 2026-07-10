@@ -372,7 +372,7 @@ struct ChapterCompleteView: View {
                 .opacity(showActions ? 1 : 0)
                 .offset(y: showActions ? 0 : 12)
 
-            if artist != nil && effectiveJourneyComplete {
+            if artist != nil, case .finished(true) = variant {
                 SecondaryActionButton(
                     title: "Share Journey",
                     icon: Image(systemName: "square.and.arrow.up"),
@@ -471,17 +471,23 @@ struct ChapterCompleteView: View {
         }
     }
 
+    /// The demo-recording override is deliberately applied AFTER resolve, not
+    /// as an input to it. `journeyFullyWatched` is also what the guard inside
+    /// `resolve` uses to decide `.unlocked`/`.locked` vs `.finished` in the
+    /// first place — feeding it a forced-true value there would make every
+    /// chapter (not just the genuinely-last one) resolve to `.finished`,
+    /// since `hasNextChapter` would never matter anymore. Resolving with the
+    /// real `isJourneyComplete` first keeps that branch decision completely
+    /// honest; the override only ever upgrades an already-`.finished(false)`
+    /// result (which only happens on the actual last chapter) for display.
     private var variant: Variant {
-        .resolve(hasNextChapter: nextChapter != nil, isNextUnlocked: isNextUnlocked,
-                  chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: effectiveJourneyComplete)
+        let resolved = Variant.resolve(hasNextChapter: nextChapter != nil, isNextUnlocked: isNextUnlocked,
+                                        chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: isJourneyComplete)
+        if case .finished(false) = resolved, isDemoRecordingBuild {
+            return .finished(journeyFullyWatched: true)
+        }
+        return resolved
     }
-
-    /// `isJourneyComplete`, with the demo-recording override folded in. The
-    /// one place both real and forced-demo completion converge — everything
-    /// else (variant, headline, eyebrow, Share Journey visibility) reads
-    /// this instead of the raw param, so the override is never partially
-    /// applied.
-    private var effectiveJourneyComplete: Bool { isJourneyComplete || isDemoRecordingBuild }
 
     /// True only when the "DEMO_RECORDING" environment variable is enabled
     /// in the Laya scheme's Run action (Xcode > Edit Scheme > Run >
