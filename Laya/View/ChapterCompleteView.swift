@@ -64,6 +64,17 @@ struct ChapterCompleteView: View {
     @State private var showActions = false
     @State private var showBackHomeLink = false  // unlocked / locked / finished — trails the CTA above it
     @State private var showSharePreview = false
+    /// Demo-recording only — forces the finished screen to render as though
+    /// the journey were genuinely complete, regardless of actual watch
+    /// status. Purely a local display override: never touches
+    /// `watchedVideoIds`/`furthestChapterIndex` or anything persisted, so it
+    /// can't corrupt real progress. Not `#if DEBUG`-gated, matching
+    /// `onSkipForDemo`'s existing precedent — this needs to work in the
+    /// actual Release build used for recording. Real listeners who
+    /// skip-swipe still see the honest state; this only fires if someone
+    /// taps the quiet "Reveal for demo" link, which a listener has no
+    /// reason to notice or tap.
+    @State private var forceFinishedForDemo = false
 
     private let cascadeStart = 0.8
     private let beatGap = 0.3
@@ -372,7 +383,7 @@ struct ChapterCompleteView: View {
                 .opacity(showActions ? 1 : 0)
                 .offset(y: showActions ? 0 : 12)
 
-            if artist != nil && isJourneyComplete {
+            if artist != nil && effectiveJourneyComplete {
                 SecondaryActionButton(
                     title: "Share Journey",
                     icon: Image(systemName: "square.and.arrow.up"),
@@ -384,6 +395,26 @@ struct ChapterCompleteView: View {
 
             backHomeButton
                 .opacity(showBackHomeLink ? 1 : 0)
+
+            // Demo-recording only — quiet, easy-to-miss link that reveals the
+            // real celebration screen without needing to have genuinely
+            // watched the journey. Disappears once tapped (effectiveJourneyComplete
+            // flips true), so it can't be tapped twice or linger pointlessly.
+            // Mirrors the locked screen's "Skip for demo" link exactly:
+            // same faint treatment, same not-#if-DEBUG visibility.
+            if !effectiveJourneyComplete {
+                Button {
+                    withAnimation(.easeOut(duration: 0.4)) { forceFinishedForDemo = true }
+                } label: {
+                    Text("Reveal for demo")
+                        .font(.layaBody(11, weight: .regular))
+                        .foregroundStyle(.ink.opacity(0.18))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .buttonStyle(HapticOnlyButtonStyle())
+                .padding(.top, 6)
+                .opacity(showBackHomeLink ? 1 : 0)
+            }
         }
         .padding(.horizontal, 24)
     }
@@ -473,8 +504,15 @@ struct ChapterCompleteView: View {
 
     private var variant: Variant {
         .resolve(hasNextChapter: nextChapter != nil, isNextUnlocked: isNextUnlocked,
-                  chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: isJourneyComplete)
+                  chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: effectiveJourneyComplete)
     }
+
+    /// `isJourneyComplete`, with the demo-only reveal override applied. The
+    /// one place both real and forced-demo completion converge — everything
+    /// else (variant, headline, eyebrow, Share Journey visibility) reads
+    /// this instead of the raw param, so the override is never partially
+    /// applied.
+    private var effectiveJourneyComplete: Bool { isJourneyComplete || forceFinishedForDemo }
 
     private var isUnlocked: Bool { variant == .unlocked }
 

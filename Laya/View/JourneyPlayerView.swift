@@ -322,7 +322,7 @@ struct JourneyPlayerView: View {
                 .init(color: .black.opacity(0.85), location: 0.0),
                 .init(color: .black.opacity(0.5), location: 0.3),
                 .init(color: .clear, location: 0.6),
-                .init(color: .black.opacity(0.55), location: 0.7),
+                .init(color: .black.opacity(0.55), location: 0.85),
                 .init(color: .black.opacity(0.9), location: 1.0)
             ],
             startPoint: .top,
