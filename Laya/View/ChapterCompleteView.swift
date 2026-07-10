@@ -227,14 +227,14 @@ struct ChapterCompleteView: View {
                     HStack(spacing: 10) {
                         ForEach(0..<totalChapters, id: \.self) { i in
                             Circle()
-                                .strokeBorder(Color.cream.opacity(i < chaptersGenuinelyDone ? 0.85 : 0.28), lineWidth: 1)
+                                .strokeBorder(Color.cream.opacity(i < displayedChaptersDone ? 0.85 : 0.28), lineWidth: 1)
                                 .background(
                                     Circle()
-                                        .fill(i < chaptersGenuinelyDone ? Color.cream.opacity(0.85) : Color.clear)
+                                        .fill(i < displayedChaptersDone ? Color.cream.opacity(0.85) : Color.clear)
                                 )
                                 .frame(width: 5, height: 5)
                         }
-                        Text("\(chaptersGenuinelyDone) of \(totalChapters) chapters done")
+                        Text("\(displayedChaptersDone) of \(totalChapters) chapters done")
                             .font(.layaBody(10, weight: .regular))
                             .tracking(1.5)
                             .textCase(.uppercase)
@@ -503,6 +503,17 @@ struct ChapterCompleteView: View {
     /// purely a display-layer override.
     private var isDemoRecordingBuild: Bool {
         ProcessInfo.processInfo.environment["DEMO_RECORDING"] == "1"
+    }
+
+    /// The locked screen's dot-tally count, with the same demo-recording
+    /// override applied as `variant` — only ever rendered inside the
+    /// `isLocked` branch, which stays fully honest regardless of the demo
+    /// flag (see `variant`), so this can't leak into a case it shouldn't.
+    /// Shows "how many chapters have I passed" (position-based) rather than
+    /// the honest genuinely-watched count, matching what a demo recording
+    /// needs to look like a naturally-progressed journey.
+    private var displayedChaptersDone: Int {
+        isDemoRecordingBuild ? completedChapter.index + 1 : chaptersGenuinelyDone
     }
 
     private var isUnlocked: Bool { variant == .unlocked }
