@@ -64,17 +64,6 @@ struct ChapterCompleteView: View {
     @State private var showActions = false
     @State private var showBackHomeLink = false  // unlocked / locked / finished — trails the CTA above it
     @State private var showSharePreview = false
-    /// Demo-recording only — forces the finished screen to render as though
-    /// the journey were genuinely complete, regardless of actual watch
-    /// status. Purely a local display override: never touches
-    /// `watchedVideoIds`/`furthestChapterIndex` or anything persisted, so it
-    /// can't corrupt real progress. Not `#if DEBUG`-gated, matching
-    /// `onSkipForDemo`'s existing precedent — this needs to work in the
-    /// actual Release build used for recording. Real listeners who
-    /// skip-swipe still see the honest state; this only fires if someone
-    /// taps the quiet "Reveal for demo" link, which a listener has no
-    /// reason to notice or tap.
-    @State private var forceFinishedForDemo = false
 
     private let cascadeStart = 0.8
     private let beatGap = 0.3
@@ -395,26 +384,6 @@ struct ChapterCompleteView: View {
 
             backHomeButton
                 .opacity(showBackHomeLink ? 1 : 0)
-
-            // Demo-recording only — quiet, easy-to-miss link that reveals the
-            // real celebration screen without needing to have genuinely
-            // watched the journey. Disappears once tapped (effectiveJourneyComplete
-            // flips true), so it can't be tapped twice or linger pointlessly.
-            // Mirrors the locked screen's "Skip for demo" link exactly:
-            // same faint treatment, same not-#if-DEBUG visibility.
-            if !effectiveJourneyComplete {
-                Button {
-                    withAnimation(.easeOut(duration: 0.4)) { forceFinishedForDemo = true }
-                } label: {
-                    Text("Reveal for demo")
-                        .font(.layaBody(11, weight: .regular))
-                        .foregroundStyle(.ink.opacity(0.18))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .buttonStyle(HapticOnlyButtonStyle())
-                .padding(.top, 6)
-                .opacity(showBackHomeLink ? 1 : 0)
-            }
         }
         .padding(.horizontal, 24)
     }
@@ -507,12 +476,28 @@ struct ChapterCompleteView: View {
                   chapterFullyWatched: completedChapterFullyWatched, journeyFullyWatched: effectiveJourneyComplete)
     }
 
-    /// `isJourneyComplete`, with the demo-only reveal override applied. The
+    /// `isJourneyComplete`, with the demo-recording override folded in. The
     /// one place both real and forced-demo completion converge — everything
     /// else (variant, headline, eyebrow, Share Journey visibility) reads
     /// this instead of the raw param, so the override is never partially
     /// applied.
-    private var effectiveJourneyComplete: Bool { isJourneyComplete || forceFinishedForDemo }
+    private var effectiveJourneyComplete: Bool { isJourneyComplete || isDemoRecordingBuild }
+
+    /// True only when the "DEMO_RECORDING" environment variable is enabled
+    /// in the Laya scheme's Run action (Xcode > Edit Scheme > Run >
+    /// Arguments > Environment Variables — off by default). Lets Abhi record
+    /// demos/live walkthroughs showing the real celebration screen + Share
+    /// Journey artifact without genuinely watching every clip first, with no
+    /// per-screen action needed once it's enabled. Structurally can't reach
+    /// a real distribution build: Archive (what TestFlight/App Store builds
+    /// use) doesn't read a scheme's Run-action environment variables at all,
+    /// so this can only ever be true in a build Abhi launched from Xcode
+    /// himself with the flag deliberately checked. Never touches
+    /// `watchedVideoIds`/`furthestChapterIndex` or anything persisted —
+    /// purely a display-layer override.
+    private var isDemoRecordingBuild: Bool {
+        ProcessInfo.processInfo.environment["DEMO_RECORDING"] == "1"
+    }
 
     private var isUnlocked: Bool { variant == .unlocked }
 
