@@ -103,7 +103,9 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.75), value: hasCompletedOnboarding)
         .animation(.easeInOut(duration: 0.75), value: hasBegunJourney)
+        #if DEBUG
         .onTapGesture(count: 3) { resetToOnboarding() }
+        #endif
     }
 
     // Spotify/guest both land here: the user has authenticated, so move off
