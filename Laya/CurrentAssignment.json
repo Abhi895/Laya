@@ -81,23 +81,13 @@
           },
           {
             "id": "video-music-3",
-            "localFilename": "Kin_Music_3.mp4",
+            "localFilename": "Kin_Giovanna_MV.mov",
             "remoteURL": null,
             "posterRemoteURL": null,
             "kind": "musicVideo",
             "title": "giovana",
             "spotifyTrackId": "24euHPmRZBVUSl2BtAbTW2",
             "secondaryArtist": "feat. Nippa"
-          },
-          {
-            "id": "video-music-5",
-            "localFilename": "Kin_Music_5.mp4",
-            "remoteURL": null,
-            "posterRemoteURL": null,
-            "kind": "bts",
-            "title": "making giovana",
-            "spotifyTrackId": null,
-            "secondaryArtist": null
           }
         ]
       },

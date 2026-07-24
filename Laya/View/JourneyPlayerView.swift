@@ -319,11 +319,11 @@ struct JourneyPlayerView: View {
     private var scrim: some View {
         LinearGradient(
             stops: [
-                .init(color: .black.opacity(0.85), location: 0.0),
-                .init(color: .black.opacity(0.5), location: 0.3),
+                .init(color: .black.opacity(0.75), location: 0.0),
+                .init(color: .black.opacity(0.4), location: 0.2),
                 .init(color: .clear, location: 0.6),
                 .init(color: .black.opacity(0.55), location: 0.85),
-                .init(color: .black.opacity(0.9), location: 1.0)
+                .init(color: .black.opacity(0.8), location: 1.0)
             ],
             startPoint: .top,
             endPoint: .bottom
