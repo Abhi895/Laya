@@ -323,8 +323,10 @@ struct JourneyPlayerView: View {
         .scrollPosition(id: $scrollID)
         .scrollIndicators(.hidden)
         .onScrollPhaseChange { oldPhase, newPhase in
+            let wasLive = oldPhase == .tracking || oldPhase == .interacting
+            let isLive = newPhase == .tracking || newPhase == .interacting
             scrollPhase = newPhase
-            if newPhase == .tracking && oldPhase == .idle {
+            if isLive && !wasLive {
                 gestureStartIndex = scrollID
             } else if newPhase == .idle {
                 gestureStartIndex = nil
