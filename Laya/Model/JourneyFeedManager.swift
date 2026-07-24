@@ -160,7 +160,16 @@ final class JourneyFeedManager {
             fadeOutAndPause(index: previousIndex)
         }
         if let player = players[index] {
-            player.seek(to: .zero)
+            // A clip whose fade task is still in flight never actually settled —
+            // it's either mid-fade-in (already current) or mid-fade-out (departed
+            // moments ago but not yet paused). Reversing a swipe before release
+            // can return here before that fade finishes; seeking such a clip to
+            // zero would silently discard playback the user never actually left.
+            // Only a genuinely idle clip (no fade running) is safe to restart.
+            let isReturningMidFade = fadeTasks[index] != nil
+            if !isReturningMidFade {
+                player.seek(to: .zero)
+            }
             if autoplay {
                 fadeIn(index: index)
                 installTimeObserver(on: player, index: index)
