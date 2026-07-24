@@ -73,6 +73,11 @@ struct JourneyPlayerView: View {
     /// scrollID) can tell that jump apart from a real manual swipe and skip
     /// autoplay (beginAutoAdvance starts playback itself once the cover clears).
     @State private var pendingAutoplayHoldIndex: Int?
+    /// Live gesture-phase tracking so a swipe that crosses the paging midpoint
+    /// and reverses *before release* isn't treated as a real navigation — see
+    /// `isLiveGestureReturn` in the scrollID onChange below.
+    @State private var scrollPhase: ScrollPhase = .idle
+    @State private var gestureStartIndex: Int?
 
     //TODO: Wire up share button
     
@@ -128,7 +133,15 @@ struct JourneyPlayerView: View {
                     // chrome in itself once the cover clears, in sync with the ink.
                     let isBreathJump = newValue == pendingAutoplayHoldIndex
                     if isBreathJump { pendingAutoplayHoldIndex = nil }
-                    manager.setCurrent(index: newValue, autoplay: !isBreathJump)
+                    // A cross-then-reverse within the same still-live drag lands back
+                    // on the index the gesture started from — that's a live preview
+                    // flicker, not a real navigation, so the clip should resume in
+                    // place rather than restart. Once the finger lifts (phase settles
+                    // out of tracking/interacting), this no longer applies.
+                    let isLiveGestureReturn = !isBreathJump
+                        && (scrollPhase == .tracking || scrollPhase == .interacting)
+                        && newValue == gestureStartIndex
+                    manager.setCurrent(index: newValue, autoplay: !isBreathJump, isLiveGestureReturn: isLiveGestureReturn)
                     if oldValue != nil && !isBreathJump { revealChrome() }
                 }
             }
@@ -309,6 +322,14 @@ struct JourneyPlayerView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $scrollID)
         .scrollIndicators(.hidden)
+        .onScrollPhaseChange { oldPhase, newPhase in
+            scrollPhase = newPhase
+            if newPhase == .tracking && oldPhase == .idle {
+                gestureStartIndex = scrollID
+            } else if newPhase == .idle {
+                gestureStartIndex = nil
+            }
+        }
     }
 
     // MARK: - Scrim & chrome

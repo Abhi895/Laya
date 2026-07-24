@@ -138,7 +138,7 @@ final class JourneyFeedManager {
     /// it — used by the auto-advance ink-dip breath, which needs the clip ready
     /// while still fully covered, and only calls `beginPlayback()` once the cover
     /// has cleared.
-    func setCurrent(index: Int, autoplay: Bool = true) {
+    func setCurrent(index: Int, autoplay: Bool = true, isLiveGestureReturn: Bool = false) {
         guard videos.indices.contains(index) else { return }
         // Remove the old periodic observer before installing a new one.
         if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
@@ -160,14 +160,13 @@ final class JourneyFeedManager {
             fadeOutAndPause(index: previousIndex)
         }
         if let player = players[index] {
-            // A clip whose fade task is still in flight never actually settled —
-            // it's either mid-fade-in (already current) or mid-fade-out (departed
-            // moments ago but not yet paused). Reversing a swipe before release
-            // can return here before that fade finishes; seeking such a clip to
-            // zero would silently discard playback the user never actually left.
-            // Only a genuinely idle clip (no fade running) is safe to restart.
-            let isReturningMidFade = fadeTasks[index] != nil
-            if !isReturningMidFade {
+            // A live-gesture return to the clip this drag started on never actually
+            // finished departing — cross-then-reverse before release is just a live
+            // preview of an uncommitted gesture, not a real navigation. Resuming in
+            // place (rather than restarting) needs the caller's actual gesture-phase
+            // signal — a fade-animation-timing proxy was tried and failed on slow
+            // drags, since the ~180ms fade completes well before a slow reversal.
+            if !isLiveGestureReturn {
                 player.seek(to: .zero)
             }
             if autoplay {
