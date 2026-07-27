@@ -124,9 +124,16 @@ struct JourneyPlayerView: View {
         .onChange(of: scrollID) { oldValue, newValue in
             if let newValue {
                 if newValue >= chapter.videos.count {
-                    // User swiped past the last clip — same outcome as it playing to its end.
-                    if let last = chapter.videos.last { onVideoCompleted(last) }
-                    completeChapter()
+                    // Swiped onto the phantom page. A fast drag can transiently
+                    // reach it and then reverse before release — that's a live
+                    // preview, not a real navigation, so only complete once the
+                    // gesture is no longer live. If scrollID settles here while
+                    // still live and never changes again, this onChange won't
+                    // refire — the .idle backstop in onScrollPhaseChange below
+                    // covers that. completePhantomPage() is idempotent.
+                    if !scrollPhase.isLive {
+                        completePhantomPage()
+                    }
                 } else {
                     // The breath's own silent prep-jump shouldn't autoplay, or reveal
                     // chrome, here — beginAutoAdvance() starts playback and fades
@@ -139,7 +146,7 @@ struct JourneyPlayerView: View {
                     // place rather than restart. Once the finger lifts (phase settles
                     // out of tracking/interacting), this no longer applies.
                     let isLiveGestureReturn = !isBreathJump
-                        && (scrollPhase == .tracking || scrollPhase == .interacting)
+                        && scrollPhase.isLive
                         && newValue == gestureStartIndex
                     manager.setCurrent(index: newValue, autoplay: !isBreathJump, isLiveGestureReturn: isLiveGestureReturn)
                     if oldValue != nil && !isBreathJump { revealChrome() }
@@ -319,17 +326,32 @@ struct JourneyPlayerView: View {
             }
             .scrollTargetLayout()
         }
+        // Built-in paging — premium snappy settle, one clip per normal or hard
+        // swipe (hard flicks confirmed on-device not to overshoot). A custom cap
+        // for the one residual overshoot (drag past halfway then reverse before
+        // release, #17) was built and rejected: it reintroduced a glide on every
+        // slow flick, a worse trade than the rare peek-then-cancel overshoot it
+        // fixed. Weak flicks advancing is intended `.paging` behavior and wanted.
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $scrollID)
         .scrollIndicators(.hidden)
         .onScrollPhaseChange { oldPhase, newPhase in
-            let wasLive = oldPhase == .tracking || oldPhase == .interacting
-            let isLive = newPhase == .tracking || newPhase == .interacting
+            let wasLive = oldPhase.isLive
+            let isLive = newPhase.isLive
             scrollPhase = newPhase
             if isLive && !wasLive {
                 gestureStartIndex = scrollID
             } else if newPhase == .idle {
                 gestureStartIndex = nil
+                // Backstop for the phantom page: if scrollID was already resting
+                // on it before the gesture went non-live, the onChange above never
+                // got a fresh value to re-fire on. .idle is the one point scrollID
+                // is guaranteed fully settled, so re-check here. completePhantomPage()
+                // is guarded (videoDetached), so this is safe even if onChange
+                // already handled it.
+                if scrollID == chapter.videos.count {
+                    completePhantomPage()
+                }
             }
         }
     }
@@ -506,6 +528,18 @@ struct JourneyPlayerView: View {
         onChapterComplete()
     }
 
+    /// Reached the phantom page for real (not a live, still-reversible drag) —
+    /// mark the last clip completed and hand off to chapter-complete. Guarded by
+    /// `videoDetached` independently of `completeChapter()`'s own guard, because
+    /// `onVideoCompleted` isn't gated there — this makes the whole path safe to
+    /// call from both the live-crossing check and the onScrollPhaseChange
+    /// settle-time backstop, without risking a double fire of `onVideoCompleted`.
+    private func completePhantomPage() {
+        guard !videoDetached else { return }
+        if let last = chapter.videos.last { onVideoCompleted(last) }
+        completeChapter()
+    }
+
     // MARK: - Derived values
 
     private var currentIndex: Int { min(scrollID ?? startIndex, max(0, chapter.videos.count - 1)) }
@@ -532,6 +566,13 @@ struct JourneyPlayerView: View {
 
     private var trackTitle: String { currentVideo?.title ?? "" }
 
+}
+
+// Only used in this file — SwiftUI's ScrollPhase has no built-in "still a live
+// gesture" predicate (its own `isScrolling` is true for decelerating/animating
+// too, which we deliberately treat as already-committed here).
+private extension ScrollPhase {
+    var isLive: Bool { self == .tracking || self == .interacting }
 }
 
 // MARK: - Video cell

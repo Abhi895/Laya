@@ -341,11 +341,7 @@ struct HomeReturnView: View {
     private var nextJourneyLabel: String {
         let calendar = Calendar.current
         let nextStart = calendar.date(byAdding: .day, value: 7, to: weekStartDate) ?? weekStartDate
-        let days = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: Date()),
-            to: calendar.startOfDay(for: nextStart)
-        ).day ?? 0
+        let days = calendar.wholeDays(from: Date(), to: nextStart)
         guard days > 0 else { return "Next journey soon." }
         return "Next journey in \(days) day\(days == 1 ? "" : "s")."
     }

@@ -67,18 +67,15 @@ extension Chapter {
     }
 
     /// Whole calendar days from `date` until this chapter unlocks — for "in N
-    /// days" copy. Normalizes both sides to the start of their calendar day
-    /// first (matching HomeReturnView.nextJourneyLabel's convention), so the
-    /// count reflects calendar-day intuition rather than a raw time-of-day
-    /// diff — otherwise this could flip a day early depending on what time of
-    /// day the chapter's anchor happens to fall on.
+    /// days" copy. Uses `Calendar.wholeDays` (calendar-day-normalized diff,
+    /// matching HomeReturnView.nextJourneyLabel's convention), so the count
+    /// reflects calendar-day intuition rather than a raw time-of-day diff that
+    /// could flip a day early depending on the anchor's time of day.
     func daysUntilUnlock(weekStartDate: Date, from date: Date = Date()) -> Int {
-        let calendar = Calendar.current
-        let days = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: date),
-            to: calendar.startOfDay(for: unlockDate(weekStartDate: weekStartDate))
-        ).day ?? 0
+        let days = Calendar.current.wholeDays(
+            from: date,
+            to: unlockDate(weekStartDate: weekStartDate)
+        )
         return max(0, days)
     }
 }
