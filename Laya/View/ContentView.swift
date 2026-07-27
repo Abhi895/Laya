@@ -105,6 +105,19 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.75), value: hasBegunJourney)
         #if DEBUG
         .onTapGesture(count: 3) { resetToOnboarding() }
+        #else
+        // TEMPORARY: reachable in Release too, so the stable build can be reset
+        // between on-device test runs. Gated behind the same DEMO_RECORDING env
+        // var ChapterCompleteView already uses — off by default in the scheme,
+        // and structurally unreachable from an Archive build (Archive ignores a
+        // scheme's Run-action environment variables). Strip this #else branch
+        // once testing is done — see R36, this exact gesture shipped ungated to
+        // real testers once already and wiped a tester's progress.
+        .onTapGesture(count: 3) {
+            if ProcessInfo.processInfo.environment["DEMO_RECORDING"] == "1" {
+                resetToOnboarding()
+            }
+        }
         #endif
     }
 
