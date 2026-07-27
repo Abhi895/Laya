@@ -84,7 +84,12 @@ struct JourneyPlayerView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.ink.ignoresSafeArea()
-            feed.ignoresSafeArea()
+            // Gated to isFullyPresented — otherwise a fast swipe during the
+            // entrance crossfade can trigger setCurrent (and its audio) before
+            // the screen is actually visible, the same guarantee canPlay/
+            // allowPlayback() already gives the first clip's own playback (R24),
+            // just not yet extended to touch input on the feed itself.
+            feed.ignoresSafeArea().allowsHitTesting(isFullyPresented)
             // Decorative only — must never intercept the horizontal paging drag.
             scrim.ignoresSafeArea().allowsHitTesting(false)
             // Lower chrome: per-clip title/track info + action buttons. Fully
