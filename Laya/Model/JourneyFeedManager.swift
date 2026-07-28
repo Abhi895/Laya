@@ -8,7 +8,6 @@
 import Foundation
 import AVFoundation
 import Observation
-import UIKit
 
 /// Owns the AVPlayer pool for a single chapter's horizontal video feed.
 ///
@@ -20,14 +19,21 @@ import UIKit
 ///
 /// The view stays the scroll authority: it owns the `scrollPosition` and tells
 /// the manager which index is current via `setCurrent(index:)`. Auto-advance is
-/// expressed as a request back to the view (`onAdvanceRequest`) so there's a
-/// single code path for both user paging and end-of-clip paging.
+/// expressed as a request back to the view (`onAdvanceRequest`), which activates
+/// the next clip via `setCurrentMuted(index:)`/`fadeInAudio(duration:)` instead —
+/// a deliberately separate path from manual-swipe `setCurrent`, so the auto-advance
+/// ink transition's extra choreography never touches the manual-swipe path.
+///
+/// 2026-07-28: deliberately stripped back to structural parity with the
+/// reference this pattern came from (`artist discoverer`) after #21 (video
+/// blip on backward swipes) survived 4 fix attempts in one session — see
+/// [[project_scrolling_minimal_reset]] for the full removed-feature list.
+/// `setCurrentMuted`/`fadeInAudio` were then added back on top of that
+/// minimal baseline specifically to support `JourneyPlayerView`'s auto-advance
+/// ink transition; manual-swipe `setCurrent` is untouched by that addition.
 @MainActor
 @Observable
 final class JourneyFeedManager {
-    /// Indices whose player has reached `.readyToPlay` — drives the poster→video
-    /// crossfade in each cell so there's no black flash on first frame.
-    private(set) var readyIndices: Set<Int> = []
     /// True while the current clip is user-paused (tap to toggle), so the play
     /// glyph can show.
     private(set) var isPaused = false
@@ -38,17 +44,6 @@ final class JourneyFeedManager {
     /// clip's asset finishes loading. Used by the view to compute time-based
     /// chapter progress (elapsed / total) at a constant fill rate.
     private(set) var durations: [Int: Double] = [:]
-    /// Frame-zero thumbnail for each clip, keyed by index — the real poster,
-    /// generated locally so it always matches the clip it sits under (unlike
-    /// a generic artist photo, which reads as a mismatch flash on cut).
-    private(set) var thumbnails: [Int: UIImage] = [:]
-    /// Last frame actually displayed by a clip that has played and then
-    /// stopped being current (manual swipe away or auto-advance), keyed by
-    /// index. Preferred over `thumbnails` (always frame-zero) as the cell's
-    /// fallback poster so a clip freezes on its real position instead of
-    /// rewinding to its first frame if the AVPlayerLayer goes momentarily
-    /// transparent mid-transition.
-    private(set) var lastFrames: [Int: UIImage] = [:]
     /// Elapsed chapter time divided by total chapter duration — moves at a
     /// constant rate regardless of individual clip lengths. Falls back to
     /// clip-count fraction while durations are still loading.
@@ -98,12 +93,8 @@ final class JourneyFeedManager {
     /// corresponding `VideoCell` so it mounts the `AVPlayerLayer`. Without
     /// observation the cell would never re-render and the video stays blank.
     private var players: [Int: AVPlayer] = [:]
-    @ObservationIgnored private var statusObservations: [Int: NSKeyValueObservation] = [:]
     @ObservationIgnored private var endObservers: [Int: NSObjectProtocol] = [:]
     @ObservationIgnored private var loadTasks: [Int: Task<Void, Never>] = [:]
-    @ObservationIgnored private var thumbnailTasks: [Int: Task<Void, Never>] = [:]
-    @ObservationIgnored private var lastFrameTasks: [Int: Task<Void, Never>] = [:]
-    @ObservationIgnored private var fadeTasks: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private var timeObserver: Any?
 
     // MARK: - Lifecycle
@@ -126,107 +117,51 @@ final class JourneyFeedManager {
         guard !canPlay else { return }
         canPlay = true
         guard let player = players[currentIndex], !isPaused else { return }
-        fadeIn(index: currentIndex)
-        if timeObserver == nil {
-            installTimeObserver(on: player, index: currentIndex)
-        }
-    }
-
-    /// Make `index` the active clip: pause the others, restart this one from the
-    /// top, and play. Safe to call before the player exists (it'll auto-play once
-    /// it's ready). Pass `autoplay: false` to seek/prep the clip without starting
-    /// it — used by the auto-advance ink-dip breath, which needs the clip ready
-    /// while still fully covered, and only calls `beginPlayback()` once the cover
-    /// has cleared.
-    func setCurrent(index: Int, autoplay: Bool = true, isLiveGestureReturn: Bool = false) {
-        guard videos.indices.contains(index) else { return }
-        // Remove the old periodic observer before installing a new one.
-        if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
-        timeObserver = nil
-        let previousIndex = currentIndex
-        // Index must be set BEFORE playbackFraction so the observation that fires
-        // on playbackFraction = 0 sees the new index — preventing a one-frame
-        // overshoot on the progress bar at clip boundaries.
-        currentIndex = index
-        playbackFraction = 0
-        isPaused = false
-        // Only the outgoing clip was actually making sound — it gets a fade-out.
-        // Everything else is already silent, so a hard pause is a no-op for them.
-        for (i, player) in players where i != index && i != previousIndex {
-            player.pause()
-        }
-        if previousIndex != index {
-            captureLastFrame(index: previousIndex)
-            fadeOutAndPause(index: previousIndex)
-        }
-        if let player = players[index] {
-            // A live-gesture return to the clip this drag started on never actually
-            // finished departing — cross-then-reverse before release is just a live
-            // preview of an uncommitted gesture, not a real navigation. Resuming in
-            // place (rather than restarting) needs the caller's actual gesture-phase
-            // signal — a fade-animation-timing proxy was tried and failed on slow
-            // drags, since the ~180ms fade completes well before a slow reversal.
-            if !isLiveGestureReturn {
-                player.seek(to: .zero)
-            }
-            if autoplay {
-                fadeIn(index: index)
-                installTimeObserver(on: player, index: index)
-            }
-        }
-        onVideoReached?(videos[index])
-    }
-
-    /// Starts playback of the already-current clip that was primed silently via
-    /// `setCurrent(index:autoplay:false)` — called once the ink-dip's cover has
-    /// cleared. Same prep/play split as `allowPlayback()`, applied per
-    /// intra-chapter transition instead of once at chapter entrance.
-    func beginPlayback() {
-        guard let player = players[currentIndex] else { return }
-        fadeIn(index: currentIndex)
-        if timeObserver == nil {
-            installTimeObserver(on: player, index: currentIndex)
-        }
-    }
-
-    /// Ramps volume 0→1 over ~180ms and starts playback immediately (the video
-    /// cut stays instant — only the audio is softened, which is what actually
-    /// reads as "abrupt" at a clip boundary).
-    private func fadeIn(index: Int) {
-        guard let player = players[index] else { return }
-        fadeTasks[index]?.cancel()
-        player.volume = 0
         player.play()
-        fadeTasks[index] = Task { [weak self] in
+        if timeObserver == nil {
+            installTimeObserver(on: player, index: currentIndex)
+        }
+    }
+
+    /// Make `index` the active clip: pause the others, restart this one from
+    /// the top, and play. Safe to call before the player exists (it'll
+    /// auto-play once it's ready).
+    func setCurrent(index: Int) { activate(index: index, muted: false) }
+
+    /// Auto-advance path only — primes the next clip silently (volume 0) so
+    /// the view's ink cover can hide it landing before the reveal fades
+    /// audio up via `fadeInAudio(duration:)`. Manual-swipe `setCurrent`
+    /// never calls this.
+    func setCurrentMuted(index: Int) { activate(index: index, muted: true) }
+
+    /// Ramps the current clip's volume 0→1 — pairs with `setCurrentMuted`.
+    func fadeInAudio(duration: Double) {
+        guard let player = players[currentIndex] else { return }
+        Task {
             let steps = 6
             for step in 1...steps {
                 if Task.isCancelled { return }
                 player.volume = Float(step) / Float(steps)
-                try? await Task.sleep(for: .milliseconds(30))
+                try? await Task.sleep(for: .seconds(duration / Double(steps)))
             }
-            guard !Task.isCancelled else { return }
-            self?.fadeTasks[index] = nil
         }
     }
 
-    /// Ramps volume to 0 over ~180ms, then pauses and resets volume to 1 so the
-    /// player is ready to fade in cleanly next time it becomes current.
-    private func fadeOutAndPause(index: Int) {
-        guard let player = players[index] else { return }
-        fadeTasks[index]?.cancel()
-        let startVolume = player.volume
-        fadeTasks[index] = Task { [weak self] in
-            let steps = 6
-            for step in 1...steps {
-                if Task.isCancelled { return }
-                player.volume = startVolume * (1 - Float(step) / Float(steps))
-                try? await Task.sleep(for: .milliseconds(30))
-            }
-            guard !Task.isCancelled else { return }
-            player.pause()
-            player.volume = 1
-            self?.fadeTasks[index] = nil
+    private func activate(index: Int, muted: Bool) {
+        guard videos.indices.contains(index) else { return }
+        if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
+        timeObserver = nil
+        currentIndex = index
+        playbackFraction = 0
+        isPaused = false
+        for player in players.values { player.pause() }
+        if let player = players[index] {
+            player.seek(to: .zero)
+            player.volume = muted ? 0 : 1
+            player.play()
+            installTimeObserver(on: player, index: index)
         }
+        onVideoReached?(videos[index])
     }
 
     private func installTimeObserver(on player: AVPlayer, index: Int) {
@@ -252,8 +187,6 @@ final class JourneyFeedManager {
     }
 
     func pauseAll() {
-        fadeTasks.values.forEach { $0.cancel() }
-        fadeTasks.removeAll()
         for player in players.values { player.pause() }
     }
 
@@ -261,17 +194,9 @@ final class JourneyFeedManager {
         if let old = timeObserver { players[currentIndex]?.removeTimeObserver(old) }
         timeObserver = nil
         loadTasks.values.forEach { $0.cancel() }
-        thumbnailTasks.values.forEach { $0.cancel() }
-        lastFrameTasks.values.forEach { $0.cancel() }
-        fadeTasks.values.forEach { $0.cancel() }
-        statusObservations.values.forEach { $0.invalidate() }
         endObservers.values.forEach { NotificationCenter.default.removeObserver($0) }
         players.values.forEach { $0.pause() }
         loadTasks.removeAll()
-        thumbnailTasks.removeAll()
-        lastFrameTasks.removeAll()
-        fadeTasks.removeAll()
-        statusObservations.removeAll()
         endObservers.removeAll()
         players.removeAll()
         try? AVAudioSession.sharedInstance().setActive(false)
@@ -284,6 +209,17 @@ final class JourneyFeedManager {
         try? session.setCategory(.playback)
         try? session.setActive(true)
     }
+
+    /// How long before a clip's natural end its own audio ramps to silence —
+    /// applied once, at load time, via the clip's own `AVAudioMix` (see
+    /// `preload`). Matches `JourneyPlayerView.breathCover` so the auto-advance
+    /// ink cover finishes rising roughly as the outgoing clip's audio finishes
+    /// fading, though this fires for *every* clip reaching its end, not just
+    /// auto-advanced ones. A player-level volume Task (wall-clock, not synced
+    /// to playback position) can't do this correctly — the clip has already
+    /// auto-paused (`actionAtItemEnd = .pause`) the instant it truly ends, so
+    /// anything triggered afterward has nothing left to fade.
+    private static let fadeOutTail: Double = 0.6
 
     private func preload(index: Int) {
         guard players[index] == nil, loadTasks[index] == nil else { return }
@@ -298,73 +234,33 @@ final class JourneyFeedManager {
                 self.durations[index] = rawDur.seconds
             }
             let item = AVPlayerItem(asset: asset)
+            if rawDur.isNumeric && rawDur.seconds > Self.fadeOutTail,
+               let audioTracks = try? await asset.loadTracks(withMediaType: .audio),
+               !audioTracks.isEmpty {
+                let mix = AVMutableAudioMix()
+                let fadeStart = CMTime(seconds: rawDur.seconds - Self.fadeOutTail, preferredTimescale: 600)
+                let fadeRange = CMTimeRange(start: fadeStart, duration: CMTime(seconds: Self.fadeOutTail, preferredTimescale: 600))
+                mix.inputParameters = audioTracks.map { track in
+                    let params = AVMutableAudioMixInputParameters(track: track)
+                    params.setVolumeRamp(fromStartVolume: 1, toEndVolume: 0, timeRange: fadeRange)
+                    return params
+                }
+                item.audioMix = mix
+            }
             let player = AVPlayer(playerItem: item)
             // We advance manually on end-of-item, so don't let the player loop or
             // freeze the last frame in a way that swallows the end notification.
             player.actionAtItemEnd = .pause
             self.players[index] = player
-            self.observeReady(item: item, index: index)
             self.observeEnd(item: item, index: index)
             self.loadTasks[index] = nil
-            self.generateThumbnail(asset: asset, index: index)
             // If the user is already sitting on this page, start it the moment
             // it lands. Also install the time observer — setCurrent ran before
             // the player existed so it couldn't install it then.
             if index == self.currentIndex && !self.isPaused && self.canPlay {
-                self.fadeIn(index: index)
+                player.play()
                 if self.timeObserver == nil {
                     self.installTimeObserver(on: player, index: index)
-                }
-            }
-        }
-    }
-
-    /// Grabs the exact frame the clip was showing right as it stops being
-    /// current, so a cell that goes momentarily transparent mid-swipe (see
-    /// VideoCell) reveals a matching freeze-frame instead of rewinding to
-    /// frame-zero. Skipped for clips barely into playback — the frame-zero
-    /// thumbnail already covers that case.
-    private func captureLastFrame(index: Int) {
-        guard let player = players[index], let item = player.currentItem else { return }
-        let time = player.currentTime()
-        guard time.seconds > 0.05 else { return }
-        let generator = AVAssetImageGenerator(asset: item.asset)
-        generator.appliesPreferredTrackTransform = true
-        generator.requestedTimeToleranceBefore = .zero
-        generator.requestedTimeToleranceAfter = .zero
-        lastFrameTasks[index]?.cancel()
-        lastFrameTasks[index] = Task { [weak self] in
-            guard let result = try? await generator.image(at: time) else { return }
-            guard let self, !Task.isCancelled else { return }
-            self.lastFrames[index] = UIImage(cgImage: result.image)
-            self.lastFrameTasks[index] = nil
-        }
-    }
-
-    /// Grabs the clip's frame-zero image so `VideoCell` has a poster that
-    /// actually matches the clip underneath, instead of falling back to a
-    /// generic artist photo.
-    private func generateThumbnail(asset: AVURLAsset, index: Int) {
-        thumbnailTasks[index] = Task { [weak self] in
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.requestedTimeToleranceBefore = .zero
-            generator.requestedTimeToleranceAfter = .zero
-            guard let result = try? await generator.image(at: .zero) else { return }
-            guard let self, !Task.isCancelled else { return }
-            self.thumbnails[index] = UIImage(cgImage: result.image)
-            self.thumbnailTasks[index] = nil
-        }
-    }
-
-    private func observeReady(item: AVPlayerItem, index: Int) {
-        statusObservations[index] = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
-            guard item.status == .readyToPlay else { return }
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.readyIndices.insert(index)
-                if index == self.currentIndex && !self.isPaused && self.canPlay {
-                    self.fadeIn(index: index)
                 }
             }
         }
