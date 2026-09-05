@@ -54,7 +54,7 @@ Shipping a new artist/week means:
 strict-match enum (one bad value fails the *entire* journey load, not just
 one clip), and `spotifyTrackId` must be a bare ID, not a full Spotify URL.
 
-## Architecture conventions
+## Architecture
 
 - All routing is crossfade `ZStack` + opacity overlays. Zoom/hero navigation
   transitions were removed deliberately and shouldn't come back.
