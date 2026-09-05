@@ -25,8 +25,6 @@ This is a pre-launch product repo (currently in TestFlight beta).
 3. Debug builds boot straight into the current assignment; a few `#if DEBUG`
    gestures (triple-tap reset, etc.) are available for manual testing.
 
-Always verify with `-configuration Release` before treating anything as
-TestFlight-ready — debug-only success doesn't prove Release behaves the same.
 
 ## Project layout
 
