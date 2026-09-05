@@ -42,7 +42,7 @@ Laya/
 
 ## Content pipeline
 
-Shipping a new artist/week means:
+Shipping a new artist/week currently means:
 
 1. Add video files under `Laya/DemoMedia/<Artist>/<Chapter>/`.
 2. Edit `Laya/CurrentAssignment.json` to point at them (chapters, ordering,
@@ -50,9 +50,7 @@ Shipping a new artist/week means:
 3. Rebuild — the bundle flattens the folder structure regardless of on-disk
    nesting depth.
 
-`CurrentAssignment.json` is hand-edited and unforgiving: `kind` is a
-strict-match enum (one bad value fails the *entire* journey load, not just
-one clip), and `spotifyTrackId` must be a bare ID, not a full Spotify URL.
+This will be automated once a backend infrastructure is implemented.
 
 ## Architecture
 
