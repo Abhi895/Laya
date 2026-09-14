@@ -247,16 +247,18 @@ struct JourneyPlayerView: View {
     // MARK: - Scrim & chrome
 
     // Darkens top and bottom so the overlaid text stays legible over video. The
-    // bottom band is taller and heavier than the top — it has to carry the
-    // performance label + track title over bright video frames.
+    // bottom band is taller than the top — it has to carry the performance
+    // label + track title over bright video frames. Each band is a single
+    // unbroken linear ramp (no intermediate stops) so it fades smoothly —
+    // extra anchor points here previously created visible kinks/banding
+    // where the rate of darkening changed abruptly.
     private var scrim: some View {
         LinearGradient(
             stops: [
-                .init(color: .black.opacity(0.75), location: 0.0),
-                .init(color: .black.opacity(0.4), location: 0.2),
+                .init(color: .black.opacity(0.85), location: 0.0),
+                .init(color: .clear, location: 0.3),
                 .init(color: .clear, location: 0.6),
-                .init(color: .black.opacity(0.55), location: 0.85),
-                .init(color: .black.opacity(0.8), location: 1.0)
+                .init(color: .black.opacity(0.9), location: 1.0),
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -357,8 +359,8 @@ struct JourneyPlayerView: View {
                 Text(trackTitle)
                     .layaTitle(34)
                     .foregroundStyle(.cream)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.65)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
 
                 if let secondary = currentVideo?.secondaryArtist {
                     Text(secondary)

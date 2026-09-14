@@ -206,13 +206,12 @@ struct JourneySessionView: View {
     }
 
     private func demoSkipAction(for snap: CompleteSnapshot) -> (() -> Void)? {
-        guard !snap.isNextUnlocked, !snap.isJourneyComplete else { return nil }
-        return skipToLastChapterIntro
+        guard !snap.isNextUnlocked, !snap.isJourneyComplete, let next = snap.nextChapter else { return nil }
+        return { self.skipToChapterIntro(next) }
     }
 
-    private func skipToLastChapterIntro() {
-        guard let lastChapter = chapters.last else { return }
-        currentChapter = lastChapter
+    private func skipToChapterIntro(_ chapter: Chapter) {
+        currentChapter = chapter
         introIsResume = false
         withAnimation(.easeInOut(duration: 0.9)) { phase = .intro }
     }

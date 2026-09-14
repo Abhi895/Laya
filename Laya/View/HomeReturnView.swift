@@ -124,7 +124,6 @@ struct HomeReturnView: View {
                                     onContinue(chapter, isCurrentChapterStarted)
                                 }
                             )
-                            timeLeftLabel
 
                             // Only relevant once there's nothing left to watch
                             // right now — while a chapter's still playable,
@@ -268,7 +267,7 @@ struct HomeReturnView: View {
                 .font(.layaDisplay(38))
                 .foregroundStyle(.ink)
 
-            Text(isJourneyComplete ? "You're all caught up this week." : "Pick up where you left off.")
+            Text(headerSubtitle)
                 .font(.layaBody(15, weight: .light))
                 .foregroundStyle(.ink.opacity(0.55))
 
@@ -281,23 +280,19 @@ struct HomeReturnView: View {
         }
     }
 
-    // MARK: - Continue
-
-    // The weekly runway — quiet, reinforcing Laya's intentional weekly cadence
-    // without competing with the Continue CTA above it. Swaps to a countdown
-    // once the user has caught up to a chapter that isn't available yet.
-    private var timeLeftLabel: some View {
-        Text(isCurrentChapterUnlocked ? "4 days left this week" : lockedCountdownLabel)
-            .font(.layaBody(12, weight: .light))
-            .foregroundStyle(.ink.opacity(0.4))
-    }
-
-    private var lockedCountdownLabel: String {
-        guard let chapter = currentChapter else { return "" }
-        let days = chapter.daysUntilUnlock(weekStartDate: weekStartDate)
-        let numeral = romanNumeral(chapter.index + 1)
-        guard days > 0 else { return "Chapter \(numeral) soon" }
-        return "Chapter \(numeral) in \(days) day\(days == 1 ? "" : "s")"
+    // "Pick up where you left off" only makes sense while there's something
+    // new to watch — once the user is caught up and waiting on the next
+    // chapter, that's no longer true. Kept generic rather than restating the
+    // exact day: the copper teaser below already gives the specific date,
+    // so repeating it here would just be the same fact twice.
+    private var headerSubtitle: String {
+        if isJourneyComplete {
+            return "You're all caught up this week."
+        } else if !isCurrentChapterUnlocked {
+            return "Next chapter dropping soon."
+        } else {
+            return "Pick up where you left off."
+        }
     }
 
     // MARK: - Derived state

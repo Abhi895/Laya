@@ -51,10 +51,17 @@ struct OnboardingAuthView: View {
                 GrowingLogoMark()
                     .frame(width: 90, height: 90)
 
-                Text("Laya")
-                    .font(.layaDisplay(56))
-                    .foregroundStyle(.ink)
-                    .padding(.top, -4)
+                VStack(spacing: 11) {
+                    Text("Laya")
+                        .font(.layaDisplay(56))
+                        .foregroundStyle(.ink)
+
+                    Text("/ luh-yuh /")
+                        .font(.layaBody(15, weight: .light))
+                        .tracking(3)
+                        .foregroundStyle(.ink.opacity(0.35))
+                }
+                .padding(.top, -4)
             }
 
             Text("One artist. One journey. Every week.")

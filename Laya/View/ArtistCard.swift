@@ -52,15 +52,15 @@ struct ArtistCard: View {
 
             // Vignette — darkens the edges and draws the eye to the centre.
             RadialGradient(
-                colors: [.clear, Color.ink.opacity(0.6)],
+                colors: [.clear, Color.ink.opacity(0.4)],
                 center: .center,
                 startRadius: width * 0.22,
-                endRadius: width * 0.78
+                endRadius: width * 0.82
             )
 
             // Top + bottom darkening for label legibility.
             LinearGradient(
-                colors: [.black.opacity(0.30), .clear, .clear, .black.opacity(0.32)],
+                colors: [.clear, .clear, .black.opacity(0.32)],
                 startPoint: .top,
                 endPoint: .bottom
             )
