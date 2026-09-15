@@ -300,8 +300,6 @@ private struct RevealCard: View {
 
     // Drives the breathing pulse on the "Hold to reveal." prompt while idle.
     @State private var pulse = false
-    // Drives the slow, breathing blur on the obscured portrait.
-    @State private var blur: CGFloat = 16
     // True for the duration of an active press.
     @State private var isHolding = false
     // Drives the ramping haptic tick during a hold — cancelled on release so
@@ -347,38 +345,55 @@ private struct RevealCard: View {
     }
 
     var body: some View {
-        // Shared portrait card; the home screen adds its own interactive chrome.
-        ArtistCard(width: width,
-                   artist: artist,
-                   // Idle breathing blur, clearing toward sharp as the hold fills.
-                   blurRadius: blur * (0.95 - holdProgress),
-                   // Grayscale at rest, coming into full colour alongside focus —
-                   // the artist arriving as the hold completes.
-                   saturation: Double(holdProgress),
-                   showName: showName,
-                   showMeta: showMeta,
-                   // Keep the meta line reserved so the name doesn't jump up when
-                   // city • genre fades in mid-waterfall.
-                   includesMeta: true)
-            // Week marker + hold prompt — home-only, layered over the portrait.
-            .overlay { cardChrome }
-            // Progress ring — sits just outside the card edge and fills as you
-            // hold. Vanishes instantly on reveal (no fade) so it doesn't linger
-            // over the artist as the rest of the sequence plays.
-            .overlay(progressRing.opacity(isRevealed ? 0 : 1).animation(nil, value: isRevealed))
-            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .gesture(holdGesture)
-            .scaleEffect(cardScale)
-            .onAppear {
-                // The revealed end-state (debug skip) needs no idle animation;
-                // holdProgress is 1 so the portrait is already sharp. Otherwise
-                // arm the idle pulse and breathing blur.
-                guard !startRevealed else { return }
-                startIdlePulse()
-                withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
-                    blur = 22
-                }
-            }
+        // TimelineView drives the idle breathing blur as a continuous function
+        // of elapsed time rather than a discrete `.repeatForever(autoreverses:)`
+        // animation — the latter doesn't guarantee continuous velocity across
+        // its own loop boundary, which read as a visible snap once per cycle.
+        // A value computed fresh from the absolute clock every frame has no
+        // "restart" moment to snap at.
+        TimelineView(.animation) { timeline in
+            // Shared portrait card; the home screen adds its own interactive chrome.
+            ArtistCard(width: width,
+                       artist: artist,
+                       // Idle breathing blur, clearing toward sharp as the hold fills.
+                       blurRadius: breathingBlur(at: timeline.date) * (0.95 - holdProgress),
+                       // Grayscale at rest, coming into full colour alongside focus —
+                       // the artist arriving as the hold completes.
+                       saturation: Double(holdProgress),
+                       showName: showName,
+                       showMeta: showMeta,
+                       // Keep the meta line reserved so the name doesn't jump up when
+                       // city • genre fades in mid-waterfall.
+                       includesMeta: true)
+                // Week marker + hold prompt — home-only, layered over the portrait.
+                .overlay { cardChrome }
+                // Progress ring — sits just outside the card edge and fills as you
+                // hold. Vanishes instantly on reveal (no fade) so it doesn't linger
+                // over the artist as the rest of the sequence plays.
+                .overlay(progressRing.opacity(isRevealed ? 0 : 1).animation(nil, value: isRevealed))
+                .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .gesture(holdGesture)
+                .scaleEffect(cardScale)
+        }
+        .onAppear {
+            // The revealed end-state (debug skip) needs no idle animation;
+            // holdProgress is 1 so the portrait is already sharp. Otherwise
+            // arm the idle pulse.
+            guard !startRevealed else { return }
+            startIdlePulse()
+        }
+    }
+
+    // 16↔22 breathing blur, one full cycle every 8s (matches the original
+    // 4s-out/4s-back easeInOut timing). `cos` is continuous and periodic by
+    // construction, so unlike a repeating `withAnimation`, there's no discrete
+    // loop boundary where the curve can visibly restart.
+    private func breathingBlur(at date: Date) -> CGFloat {
+        guard !startRevealed else { return 16 }
+        let period = 8.0
+        let phase = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period
+        let eased = (1 - cos(phase * 2 * .pi)) / 2   // 0...1, smooth start/end each half-cycle
+        return 16 + 6 * eased
     }
 
     // MARK: - Card chrome
@@ -387,15 +402,6 @@ private struct RevealCard: View {
     // and present only during the home reveal interaction.
     private var cardChrome: some View {
         VStack {
-            // Week marker — sits at the top of the card.
-            Text("WEEK 24 • 4 DAYS LEFT")
-                .font(.layaBody(11, weight: .medium))
-                .tracking(2)
-                .foregroundStyle(.cream.opacity(0.85))
-                // Fades away as the portrait is revealed.
-                .opacity(1 - Double(holdProgress))
-                .padding(.top, 20)
-
             Spacer()
 
             Text("Hold to reveal.")
