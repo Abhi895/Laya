@@ -80,7 +80,12 @@ struct JourneyPlayerView: View {
     /// instantly completed the chapter, even on a still-reversible drag.
     @State private var scrollPhase: ScrollPhase = .idle
 
-    //TODO: Wire up share button
+    // TODO: Wire up share button — shares the *current clip being watched*,
+    // not the journey-completion artifact (`ShareArtifactPreviewView`).
+    // Reverted 2026-09-15: was wired to the wrong flow. Real version needs a
+    // design decision first — raw clip via ShareLink (simple, no Laya
+    // branding) vs. a branded per-clip mini-card (protects the reshare
+    // growth loop, real new build work). Deferred until after relaunch.
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -258,6 +263,7 @@ struct JourneyPlayerView: View {
                 .init(color: .black.opacity(0.85), location: 0.0),
                 .init(color: .clear, location: 0.3),
                 .init(color: .clear, location: 0.6),
+                .init(color: .black.opacity(0.5), location: 0.8),
                 .init(color: .black.opacity(0.9), location: 1.0),
             ],
             startPoint: .top,

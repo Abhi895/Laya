@@ -52,16 +52,6 @@
           },
           {
             "id": "video-bg-4",
-            "localFilename": "Elle_Background_7_Books.mp4",
-            "remoteURL": null,
-            "posterRemoteURL": null,
-            "kind": null,
-            "title": "My favourite books",
-            "spotifyTrackId": null,
-            "secondaryArtist": null
-          },
-          {
-            "id": "video-bg-5",
             "localFilename": "Elle_Background_2.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,
@@ -71,7 +61,7 @@
             "secondaryArtist": null
           },
           {
-            "id": "video-bg-6",
+            "id": "video-bg-5",
             "localFilename": "Elle_Background_5_CarSinging.mp4",
             "remoteURL": null,
             "posterRemoteURL": null,

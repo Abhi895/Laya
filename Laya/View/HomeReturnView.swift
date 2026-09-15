@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// The Home screen as it appears on *return* visits — after the artist has been
 /// revealed and the journey begun. Unlike the first-visit hold-to-reveal, the
@@ -118,7 +119,7 @@ struct HomeReturnView: View {
                                 icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
                                 action: {
                                     guard isCurrentChapterUnlocked, let chapter = currentChapter else {
-                                        // TODO: route to artist.spotifyArtistId once Spotify linking is wired up.
+                                        openArtistOnSpotify()
                                         return
                                     }
                                     onContinue(chapter, isCurrentChapterStarted)
@@ -339,6 +340,17 @@ struct HomeReturnView: View {
         let days = calendar.wholeDays(from: Date(), to: nextStart)
         guard days > 0 else { return "Next journey soon." }
         return "Next journey in \(days) day\(days == 1 ? "" : "s")."
+    }
+
+    // MARK: - Spotify
+
+    private func openArtistOnSpotify() {
+        guard let id = artist?.spotifyArtistId else { return }
+        let native = URL(string: "spotify:artist:\(id)")!
+        let web = URL(string: "https://open.spotify.com/artist/\(id)")!
+        UIApplication.shared.open(native) { success in
+            if !success { UIApplication.shared.open(web) }
+        }
     }
 
     // MARK: - Loading
