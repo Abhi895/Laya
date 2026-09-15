@@ -357,7 +357,7 @@ struct JourneyPlayerView: View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 7) {
                 Text(performanceLabel)
-                    .font(.layaBody(15, weight: .regular))
+                    .font(.layaBody(15, weight: .semibold))
                     .tracking(2)
                     .textCase(.uppercase)
                     .foregroundStyle(.copper)

@@ -72,82 +72,93 @@ struct HomeReturnView: View {
             ZStack {
                 Color.cream.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    header
-                        .padding(.top, 34)
+                // ScrollView + minHeight rather than a plain fixed VStack: in
+                // the tallest content state (chapter locked, notifications not
+                // yet granted — the teaser text, the primary button, *and* the
+                // full-size NotifyMeButton all stacked) the Spacer(minLength:)
+                // rhythm below can't compress enough to fit every device, and
+                // with no scroll affordance the bottom content just clipped
+                // off-screen. minHeight keeps every other (shorter) state
+                // looking and behaving exactly as before — this only kicks in
+                // when content genuinely doesn't fit.
+                ScrollView {
+                    VStack(spacing: 0) {
+                        header
+                            .padding(.top, 34)
 
-                    Spacer(minLength: 30)
+                        Spacer(minLength: 30)
 
-                    // Sharp portrait throughout — the completed state only
-                    // drops the meta line, not focus.
-                    ArtistCard(width: geo.size.width * 0.72,
-                               artist: artist,
-                               blurRadius: 0,
-                               showName: true,
-                               showMeta: true,
-                               includesMeta: !isJourneyComplete)
+                        // Sharp portrait throughout — the completed state only
+                        // drops the meta line, not focus.
+                        ArtistCard(width: geo.size.width * 0.72,
+                                   artist: artist,
+                                   blurRadius: 0,
+                                   showName: true,
+                                   showMeta: true,
+                                   includesMeta: !isJourneyComplete)
 
-                    // Tight gap so the progress track reads as belonging to the card.
-                    Spacer().frame(height: 35)
+                        // Tight gap so the progress track reads as belonging to the card.
+                        Spacer().frame(height: 35)
 
-                    VStack(alignment: .leading, spacing: 18) {
-                        ChapterProgressTrack(chapters: chapters,
-                                             watchedVideoIds: watchedVideoIds,
-                                             weekStartDate: weekStartDate,
-                                             showLabels: !isJourneyComplete)
-                        if isJourneyComplete {
-                            Text("All chapters completed.")
-                                .font(.layaBody(13, weight: .light))
-                                .foregroundStyle(.ink.opacity(0.45))
-                        } else if !isCurrentChapterUnlocked {
-                            nextChapterTeaser
-                        }
-                    }
-                    .padding(.horizontal, 24)
-
-                    // The completed state stacks two CTAs instead of one —
-                    // a touch more room here keeps it from reading denser
-                    // than the rest of the screen's spacing rhythm.
-                    Spacer(minLength: isJourneyComplete ? 40 : 30)
-
-                    if isJourneyComplete {
-                        completedActions
-                    } else {
-                        VStack(spacing: 14) {
-                            PrimaryActionButton(
-                                title: isCurrentChapterUnlocked ? "Continue" : "Stream \(firstName)'s music",
-                                icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
-                                action: {
-                                    guard isCurrentChapterUnlocked, let chapter = currentChapter else {
-                                        openArtistOnSpotify()
-                                        return
-                                    }
-                                    onContinue(chapter, isCurrentChapterStarted)
-                                }
-                            )
-
-                            // Only relevant once there's nothing left to watch
-                            // right now — while a chapter's still playable,
-                            // "Continue" is the only thing that matters here.
-                            if !isCurrentChapterUnlocked, let currentChapter {
-                                NotifyMeButton(
-                                    style: .secondary,
-                                    label: "Notify me when it drops",
-                                    date: currentChapter.unlockDate(weekStartDate: weekStartDate),
-                                    notificationTitle: "Laya",
-                                    notificationBody: "\(firstName)'s next chapter just dropped."
-                                )
-                                .padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 18) {
+                            ChapterProgressTrack(chapters: chapters,
+                                                 watchedVideoIds: watchedVideoIds,
+                                                 weekStartDate: weekStartDate,
+                                                 showLabels: !isJourneyComplete)
+                            if isJourneyComplete {
+                                Text("All chapters completed.")
+                                    .font(.layaBody(13, weight: .light))
+                                    .foregroundStyle(.ink.opacity(0.45))
+                            } else if !isCurrentChapterUnlocked {
+                                nextChapterTeaser
                             }
                         }
-                        // Same inset as the progress track so the CTA grounds itself
-                        // in the same content column as the card and track above it.
                         .padding(.horizontal, 24)
-                        .padding(.bottom, 44)
+
+                        // The completed state stacks two CTAs instead of one —
+                        // a touch more room here keeps it from reading denser
+                        // than the rest of the screen's spacing rhythm.
+                        Spacer(minLength: isJourneyComplete ? 40 : 30)
+
+                        if isJourneyComplete {
+                            completedActions
+                        } else {
+                            VStack(spacing: 14) {
+                                PrimaryActionButton(
+                                    title: isCurrentChapterUnlocked ? "Continue" : "Stream \(firstName)'s music",
+                                    icon: isCurrentChapterUnlocked ? nil : Image("spotify"),
+                                    action: {
+                                        guard isCurrentChapterUnlocked, let chapter = currentChapter else {
+                                            openArtistOnSpotify()
+                                            return
+                                        }
+                                        onContinue(chapter, isCurrentChapterStarted)
+                                    }
+                                )
+
+                                // Only relevant once there's nothing left to watch
+                                // right now — while a chapter's still playable,
+                                // "Continue" is the only thing that matters here.
+                                if !isCurrentChapterUnlocked, let currentChapter {
+                                    NotifyMeButton(
+                                        style: .secondary,
+                                        label: "Notify me when it drops",
+                                        date: currentChapter.unlockDate(weekStartDate: weekStartDate),
+                                        notificationTitle: "Laya",
+                                        notificationBody: "\(firstName)'s next chapter just dropped."
+                                    )
+                                    .padding(.top, 4)
+                                }
+                            }
+                            // Same inset as the progress track so the CTA grounds itself
+                            // in the same content column as the card and track above it.
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 44)
+                        }
                     }
+                    .padding(.horizontal, 32)
+                    .frame(minHeight: geo.size.height)
                 }
-                .padding(.horizontal, 32)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 #if DEBUG
                 resetButton

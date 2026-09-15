@@ -206,6 +206,12 @@ struct JourneySessionView: View {
     }
 
     private func demoSkipAction(for snap: CompleteSnapshot) -> (() -> Void)? {
+        // Gated to DEMO_RECORDING — structurally can't reach a real Archive/
+        // TestFlight build (scheme env vars only apply when Xcode launches
+        // the app directly), but without this check the button was visible
+        // to any user on any build whenever the next chapter was locked,
+        // silently defeating the drip-release schedule entirely.
+        guard ProcessInfo.processInfo.environment["DEMO_RECORDING"] == "1" else { return nil }
         guard !snap.isNextUnlocked, !snap.isJourneyComplete, let next = snap.nextChapter else { return nil }
         return { self.skipToChapterIntro(next) }
     }
