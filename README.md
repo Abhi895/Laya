@@ -15,11 +15,11 @@ focused exposure to people who actually want to discover new music.
 
 <p align="center">
   <img src="Docs/screenshots/launch.png" width="200" />
-  <img src="Docs/screenshots/journey.png" width="200" />
+  <img src="Docs/screenshots/pre-reveal.png" width="200" />
   <img src="Docs/screenshots/new-chapter.png" width="200" />
 </p>
 <p align="center">
-  <img src="Docs/screenshots/pre-reveal.png" width="200" />
+  <img src="Docs/screenshots/journey.png" width="200" />
   <img src="Docs/screenshots/completion.png" width="200" />
 </p>
 
