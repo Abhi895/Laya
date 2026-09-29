@@ -1,6 +1,10 @@
+<img src="Docs/screenshots/icon.png" width="72" align="left" style="margin-right: 12px" />
+
 # Laya
 
 One artist. One journey. Every week.
+
+<br clear="left" />
 
 **Currently in TestFlight beta.** Laya is an iOS app for intentional music
 discovery. Each week, one emerging artist is presented through a finite,
@@ -9,13 +13,18 @@ curated sequence of 10–20 short-form videos across 3 chapters -
 on one artist at a time instead of scrolling an infinite feed; artists get
 focused exposure to people who actually want to discover new music.
 
-<!-- Screenshots: drop 3 images (Home / Journey player / Chapter complete) at
-     Laya/Docs/screenshot-1.png etc. and swap this comment for:
-     <p align="center">
-       <img src="Laya/Docs/screenshot-1.png" width="240" />
-       <img src="Laya/Docs/screenshot-2.png" width="240" />
-       <img src="Laya/Docs/screenshot-3.png" width="240" />
-     </p> -->
+<p align="center">
+  <img src="Docs/screenshots/launch.png" width="200" />
+  <img src="Docs/screenshots/journey.png" width="200" />
+  <img src="Docs/screenshots/new-chapter.png" width="200" />
+</p>
+<p align="center">
+  <img src="Docs/screenshots/pre-reveal.png" width="200" />
+  <img src="Docs/screenshots/completion.png" width="200" />
+</p>
+
+*(Screenshots use a placeholder demo artist for design purposes — the live
+TestFlight build ships real artists.)*
 
 This is a real, shipping product. It's been built, iterated on, and put in
 front of real artists and real beta testers since June 2026.
