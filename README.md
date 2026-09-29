@@ -26,6 +26,12 @@ focused exposure to people who actually want to discover new music.
 *(Screenshots use a placeholder demo artist for design purposes — the live
 TestFlight build ships real artists.)*
 
+### Demo
+
+<p align="center">
+  <video src="Docs/demo.mp4" controls muted width="280"></video>
+</p>
+
 This is a real, shipping product. It's been built, iterated on, and put in
 front of real artists and real beta testers since June 2026.
 
