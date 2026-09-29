@@ -9,7 +9,7 @@ One artist. One journey. Every week.
 **Currently in TestFlight beta.** Laya is an iOS app for intentional music
 discovery. Each week, one emerging artist is presented through a finite,
 curated sequence of 10–20 short-form videos across 3 chapters -
-**Background**, **Music**, **Goals** — drip-released daily. Listeners go deep
+**Background**, **Music**, **Goals** — drip-released through the week. Listeners go deep
 on one artist at a time instead of scrolling an infinite feed; artists get
 focused exposure to people who actually want to discover new music.
 
