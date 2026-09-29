@@ -28,8 +28,7 @@ TestFlight build ships real artists.)*
 
 ### Demo
 
-**[▶ Watch a walkthrough of the app in action](Docs/demo.mp4)** (GitHub can't
-preview video inline from a repo path — click through to play/download.)
+**[▶ Watch a walkthrough of the app in action](Docs/demo.mp4)**
 
 This is a real, shipping product. It's been built, iterated on, and put in
 front of real artists and real beta testers since June 2026.
@@ -37,7 +36,7 @@ front of real artists and real beta testers since June 2026.
 ## Stack
 
 - SwiftUI, iOS 26+
-- No backend yet — content is served from a bundled JSON manifest + local
+- Backend infrastructure coming soon — content is currently served from a bundled JSON manifest + local
   video assets (`LocalAssignmentService`)
 - No external dependencies beyond Apple frameworks (AVFoundation for
   playback, Firebase for auth — see `GoogleService-Info.plist`)
