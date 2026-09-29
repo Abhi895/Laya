@@ -2,14 +2,25 @@
 
 One artist. One journey. Every week.
 
-Laya is an iOS app for intentional music discovery. Each week, one emerging
-artist is presented through a finite, curated sequence of 10–20 short-form
-videos across 3 chapters - **Background**, **Music**, **Goals** — drip-released
-daily. Listeners go deep on one artist at a time instead of scrolling an
-infinite feed; artists get focused exposure to people who actually want to
-discover new music.
+**Live in TestFlight beta** *(add your public TestFlight link here if you have one)* — Laya is an iOS app for intentional music
+discovery. Each week, one emerging artist is presented through a finite,
+curated sequence of 10–20 short-form videos across 3 chapters -
+**Background**, **Music**, **Goals** — drip-released daily. Listeners go deep
+on one artist at a time instead of scrolling an infinite feed; artists get
+focused exposure to people who actually want to discover new music.
 
-This is a pre-launch product repo (currently in TestFlight beta).
+<!-- Screenshots: drop 3 images (Home / Journey player / Chapter complete) at
+     Laya/Docs/screenshot-1.png etc. and swap this comment for:
+     <p align="center">
+       <img src="Laya/Docs/screenshot-1.png" width="240" />
+       <img src="Laya/Docs/screenshot-2.png" width="240" />
+       <img src="Laya/Docs/screenshot-3.png" width="240" />
+     </p> -->
+
+This is a real, shipping product — not a hackathon toy. It's been built,
+iterated on, and put in front of real artists and real beta testers since
+June 2026.
+
 ## Stack
 
 - SwiftUI, iOS 26+
