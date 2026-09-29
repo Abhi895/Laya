@@ -28,9 +28,8 @@ TestFlight build ships real artists.)*
 
 ### Demo
 
-<p align="center">
-  <video src="Docs/demo.mp4" controls muted width="280"></video>
-</p>
+**[▶ Watch a walkthrough of the app in action](Docs/demo.mp4)** (GitHub can't
+preview video inline from a repo path — click through to play/download.)
 
 This is a real, shipping product. It's been built, iterated on, and put in
 front of real artists and real beta testers since June 2026.
