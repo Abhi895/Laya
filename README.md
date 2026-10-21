@@ -26,13 +26,6 @@ focused exposure to people who actually want to discover new music.
 *(Screenshots use a placeholder demo artist for design purposes — the live
 TestFlight build ships real artists.)*
 
-### Demo
-
-**[▶ Watch a walkthrough of the app in action](Docs/demo.mp4)**
-
-This is a real, shipping product. It's been built, iterated on, and put in
-front of real artists and real beta testers since June 2026.
-
 ## Stack
 
 - SwiftUI, iOS 26+
